@@ -1,0 +1,83 @@
+version: v1beta11
+
+vars:
+  - name: IMAGE-CLIENT
+    value: ci4rail/nats-leafnode-sidecar-client
+  - name: IMAGE-REGISTRY
+    value: ci4rail/nats-leafnode-sidecar-registry
+
+dependencies:
+  - name: k3d
+    source:
+      git: https://github.com/edgefarm/devspace.base
+      subPath: /environments/k3d
+      branch: rework
+
+commands:
+  - name: init
+    command: |-
+      devspace run update
+      devspace run k3d.init
+
+  - name: purge
+    command: |-
+      devspace run k3d.purge
+
+  - name: activate
+    command: |-
+      devspace run k3d.activate
+
+  - name: update
+    command: |-
+      devspace update dependencies
+
+dev:
+  # `dev.ports` specifies all ports that should be forwarded while `devspace dev` is running
+  # Port-forwarding lets you access your application via localhost on your local machine
+  ports:
+    - imageSelector: ${IMAGE-CLIENT} # Select the Pod that runs our `${IMAGE}`
+      forward:
+        - port: 23450
+          remotePort: 2345
+  # `dev.sync` configures a file sync between our Pods in k8s and your local project files
+  sync:
+    - imageSelector: ${IMAGE-CLIENT} # Select the Pod that runs our `${IMAGE}`
+      excludePaths:
+        - .git/
+  # `dev.terminal` tells DevSpace to open a terminal as a last step during `devspace dev`
+  terminal:
+    imageSelector: ${IMAGE-CLIENT} # Select the Pod that runs our `${IMAGE}`
+    # With this optional `command` we can tell DevSpace to run a script when opening the terminal
+    # This is often useful to display help info for new users or perform initial tasks (e.g. installing dependencies)
+    # DevSpace has generated an example ./devspace_start.sh file in your local project - Feel free to customize it!
+    command:
+      - bash
+
+  # Since our Helm charts and manifests deployments are often optimized for production,
+  # DevSpace let's you swap out Pods dynamically to get a better dev environment
+  replacePods:
+    - imageSelector: ${IMAGE-CLIENT} # Select the Pod that runs our `${IMAGE}`
+      # Since the `${IMAGE}` used to start our main application pod may be distroless or not have any dev tooling, let's replace it with a dev-optimized image
+      # DevSpace provides a sample image here but you can use any image for your specific needs
+      replaceImage: loftsh/go:latest
+      # Besides replacing the container image, let's also apply some patches to the `spec` of our Pod
+      # We are overwriting `command` + `args` for the first container in our selected Pod, so it starts with `sleep 9999999`
+      # Using `sleep 9999999` as PID 1 (instead of the regular ENTRYPOINT), allows you to start the application manually
+      patches:
+        - op: replace
+          path: spec.containers[0].command
+          value:
+            - sleep
+        - op: replace
+          path: spec.containers[0].args
+          value:
+            - "9999999"
+        - op: remove
+          path: spec.containers[0].securityContext
+
+deployments:
+  - name: nats-leafnode-sidecar-client
+    kubectl:
+      manifests:
+        - manifests/client/
+    namespace: dev
