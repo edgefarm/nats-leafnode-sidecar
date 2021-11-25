@@ -10,7 +10,8 @@ import (
 )
 
 const (
-	credentialsMountDirectory = "/nats-credentials"
+	credentialsMountDirectory        = "/nats-credentials"
+	edgefarmNetworkAccountNameSecret = "edgefarm.network-natsAccount"
 )
 
 type NatsCredentials struct {
@@ -20,21 +21,44 @@ type NatsCredentials struct {
 
 // Client is a client for the registry service.
 type Client struct {
-	// NatsAccount is the account name for the nats server.
+	// NatsAccount is the nats account to use for the given nats user.
 	NatsAccount string
+	// NatsUser is the user name for the nats server for the given nats account.
+	NatsUser string
 	// Creds contains the credentials for the current application
-	Creds []NatsCredentials
+	Creds *NatsCredentials
 	// Nats connection
 	NatsConn *nats.Conn
 }
 
-func NewClient(natsAccount string, natsURI string) (*Client, error) {
+func NewClient(natsUser string, natsURI string) (*Client, error) {
 	f, err := files.GetSymlinks(credentialsMountDirectory)
 	if err != nil {
 		return nil, err
 	}
-	creds := func() []NatsCredentials {
-		var creds []NatsCredentials
+
+	natsAccount, err := func() (string, error) {
+		f, err := files.GetSymlinks(credentialsMountDirectory)
+		if err != nil {
+			return "", err
+		}
+		for _, file := range f {
+			if filepath.Base(file) == edgefarmNetworkAccountNameSecret {
+				b, err := ioutil.ReadFile(file)
+				if err != nil {
+					fmt.Println(err)
+					break
+				}
+				return string(b), nil
+			}
+		}
+		return "", fmt.Errorf("no nats account found for user %s", natsUser)
+	}()
+	if err != nil {
+		return nil, err
+	}
+
+	creds := func() *NatsCredentials {
 		for _, file := range f {
 			isDir, err := files.IsDir(file)
 			if err != nil {
@@ -46,15 +70,20 @@ func NewClient(natsAccount string, natsURI string) (*Client, error) {
 					fmt.Println(err)
 					break
 				}
-				creds = append(creds, NatsCredentials{
-					Username:         filepath.Base(file),
-					CredsFileContent: string(b),
-				})
+				if natsUser == filepath.Base(file) {
+					return &NatsCredentials{
+						Username:         fmt.Sprintf("%s-%s", natsAccount, filepath.Base(file)),
+						CredsFileContent: string(b),
+					}
+				}
 			}
 		}
-		return creds
+		return nil
 	}()
 
+	if creds == nil {
+		return nil, fmt.Errorf("no credentials found for user %s", natsUser)
+	}
 	// nc, err := nats.Connect(natsURI)
 	// if err != nil {
 	// 	return nil, err
@@ -62,6 +91,7 @@ func NewClient(natsAccount string, natsURI string) (*Client, error) {
 
 	return &Client{
 		NatsAccount: natsAccount,
+		NatsUser:    natsUser,
 		Creds:       creds,
 		NatsConn:    nil,
 	}, nil

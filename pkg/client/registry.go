@@ -1,10 +1,9 @@
 package client
 
-import (
-	"encoding/json"
-)
+import "time"
 
 const (
+	natsTimeout       = time.Second * 10
 	registerSubject   = "register"
 	unregisterSubject = "unregister"
 )
@@ -26,18 +25,13 @@ func Unregister() *RegistryOptions {
 }
 
 func (c *Client) Registry(option *RegistryOptions) error {
-	secret := []byte{}
-	for _, cred := range c.Creds {
-		if cred.Username == c.NatsAccount {
-			var err error
-			secret, err = json.Marshal(cred)
-			if err != nil {
-				return err
-			}
-		}
+	resp, err := c.NatsConn.Request(option.subject, []byte(c.Creds.CredsFileContent), natsTimeout)
+	if err != nil {
+		return err
 	}
-	if len(secret) > 0 {
-		return c.NatsConn.Publish(option.subject, secret)
+	// TODO: check resp.Data
+	if resp.Data == nil {
+		return nil
 	}
 	return nil
 }
