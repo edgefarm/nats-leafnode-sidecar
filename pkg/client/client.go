@@ -101,16 +101,16 @@ func NewClient(natsUser string, natsURI string) (*Client, error) {
 	if creds == nil {
 		return nil, fmt.Errorf("no credentials found for user %s", natsUser)
 	}
-	// nc, err := nats.Connect(natsURI)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	nc, err := nats.Connect(natsURI)
+	if err != nil {
+		return nil, err
+	}
 
 	return &Client{
 		NatsAccount: natsAccount,
 		NatsUser:    natsUser,
 		Creds:       creds,
-		NatsConn:    nil,
+		NatsConn:    nc,
 	}, nil
 }
 
