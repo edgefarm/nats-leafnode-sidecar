@@ -127,10 +127,11 @@ func (c *Client) Connect() error {
 
 // Shutdown unregisteres the application and shuts down the nats connection.
 func (c *Client) Shutdown() error {
+	fmt.Println("Shutting down client")
 	err := c.Registry(Unregister())
 	if err != nil {
 		return err
 	}
-	// c.NatsConn.Close()
+	c.NatsConn.Close()
 	return nil
 }

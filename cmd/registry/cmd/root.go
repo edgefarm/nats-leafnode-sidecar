@@ -17,7 +17,11 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -44,7 +48,27 @@ to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("registry called")
 		r := registry.NewRegistry()
-		r.Dump()
+		// Signal handling.
+		go func() {
+			c := make(chan os.Signal, 1)
+			signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
+
+			for sig := range c {
+				log.Printf("Trapped \"%v\" signal\n", sig)
+				switch sig {
+				case syscall.SIGINT:
+					log.Println("Exiting...")
+					os.Exit(0)
+					return
+				case syscall.SIGTERM:
+					r.Shutdown()
+					return
+				}
+			}
+		}()
+		for {
+			time.Sleep(time.Second)
+		}
 	},
 }
 

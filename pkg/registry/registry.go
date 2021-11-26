@@ -1,5 +1,10 @@
 package registry
 
+import (
+	"fmt"
+	"os"
+)
+
 const (
 	credsFilesPath = "/creds"
 	configFilePath = "/nats.json"
@@ -20,4 +25,10 @@ func NewRegistry() *Registry {
 		configFilePath:    configFilePath,
 	}
 	return r
+}
+
+// Shutdown shuts down the registry
+func (r *Registry) Shutdown() {
+	fmt.Println("Shutting down registry")
+	os.Exit(0)
 }
