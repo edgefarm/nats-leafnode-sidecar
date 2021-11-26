@@ -1,26 +1,23 @@
 package registry
 
-var config = `{
-	"pid_file": "/var/run/nats.pid",
-	"http": 8222,
-	"server_name": "edge",
-	"leafnodes": {
-		"remotes": []
-	},
-	"accounts": {
-	}
-}`
+const (
+	credsFilesPath = "/creds"
+	configFilePath = "/nats.json"
+)
 
 // Registry is a registry for nats-leafnodes
 type Registry struct {
 	configFileContent string
 	credsFilesPath    string
+	configFilePath    string
 }
 
 // NewRegistry creates a new registry
 func NewRegistry() *Registry {
 	r := &Registry{
 		configFileContent: string(config),
+		credsFilesPath:    credsFilesPath,
+		configFilePath:    configFilePath,
 	}
 	return r
 }

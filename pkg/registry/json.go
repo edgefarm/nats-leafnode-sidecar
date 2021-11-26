@@ -12,6 +12,17 @@ const (
 	ngsHost = "tls://connect.ngs.global:7422"
 )
 
+var config = `{
+	"pid_file": "/var/run/nats.pid",
+	"http": 8222,
+	"server_name": "edge",
+	"leafnodes": {
+		"remotes": []
+	},
+	"accounts": {
+	}
+}`
+
 func jsonPrettyPrint(in string) string {
 	var out bytes.Buffer
 	err := json.Indent(&out, []byte(in), "", "\t")
