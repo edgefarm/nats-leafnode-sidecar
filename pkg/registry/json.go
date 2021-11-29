@@ -32,8 +32,8 @@ func jsonPrettyPrint(in string) string {
 	return out.String()
 }
 
-func (r *Registry) addCredentials(account string, user string, password string, creds string) error {
-	patchJSON := []byte(fmt.Sprintf(`[{"op": "add", "path": "/leafnodes/remotes/-", "value": {"url": "%s", "credentials": "%s.creds", "account": "%s"}}]`, ngsHost, user, account))
+func (r *Registry) addCredentials(userAccountName string, user string, password string, creds string) error {
+	patchJSON := []byte(fmt.Sprintf(`[{"op": "add", "path": "/leafnodes/remotes/-", "value": {"url": "%s", "credentials": "%s.creds", "account": "%s"}}]`, ngsHost, user, userAccountName))
 	patch, err := jsonpatch.DecodePatch(patchJSON)
 	if err != nil {
 		return err
@@ -48,20 +48,8 @@ func (r *Registry) addCredentials(account string, user string, password string, 
 		return err
 	}
 
-	//  check if accounts is already existing
-	accountFound := false
-	for k := range raw["accounts"].(map[string]interface{}) {
-		if k == account {
-			accountFound = true
-			break
-		}
-	}
-	if accountFound {
-		return fmt.Errorf("account %s already exists", account)
-	}
-
 	accounts := raw["accounts"].(map[string]interface{})
-	accounts[account] = map[string]interface{}{
+	accounts[userAccountName] = map[string]interface{}{
 		"users": map[string]interface{}{
 			"user":     user,
 			"password": password,
