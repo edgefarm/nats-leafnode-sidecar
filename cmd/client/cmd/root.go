@@ -51,7 +51,7 @@ to quickly create a Cobra application.`,
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("client called")
-		registryClient, err := client.NewClient(natsUser, natsURI)
+		registryClient, err := client.NewClient(natsURI)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -105,7 +105,6 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.client.yaml)")
 	rootCmd.PersistentFlags().StringVar(&natsURI, "natsuri", "nats://127.0.0.1:4222", "natsURI to connect to")
-	rootCmd.PersistentFlags().StringVar(&natsUser, "natsuser", "", "Nats user to register credentials for")
 
 }
 

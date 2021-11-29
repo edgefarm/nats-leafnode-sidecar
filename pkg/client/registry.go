@@ -15,7 +15,10 @@ limitations under the License.
 
 package client
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 const (
 	natsTimeout       = time.Second * 10
@@ -44,7 +47,11 @@ func Unregister() *RegistryOptions {
 
 // Registry is used to register or unregister an application to the nats server
 func (c *Client) Registry(option *RegistryOptions) error {
-	resp, err := c.NatsConn.Request(option.subject, []byte(c.Creds.CredsFileContent), natsTimeout)
+	j, err := json.Marshal(c.Creds)
+	if err != nil {
+		return err
+	}
+	resp, err := c.NatsConn.Request(option.subject, j, natsTimeout)
 	if err != nil {
 		return err
 	}
