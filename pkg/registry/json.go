@@ -38,12 +38,10 @@ func (r *Registry) addCredentials(userAccountName string, user string, password 
 		return err
 	}
 
-	//  check if remote already exists
+	// check if remote already exists
 	remoteFound := false
-	fmt.Println(raw["leafnodes"].(map[string]interface{})["remotes"].([]interface{}))
 	for _, r := range raw["leafnodes"].(map[string]interface{})["remotes"].([]interface{}) {
 		remote := r.(map[string]interface{})
-		fmt.Println(remote["account"])
 		if ok := remote["account"] == userAccountName; ok {
 			remoteFound = true
 			break

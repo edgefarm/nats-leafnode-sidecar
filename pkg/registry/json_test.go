@@ -9,8 +9,9 @@ import (
 
 func TestCredentialsHandling(t *testing.T) {
 	assert := assert.New(t)
-	r := NewRegistry()
-	err := r.addCredentials("account1", "account1-user", "account1-password", "/account1-user.creds")
+	r, err := NewRegistry("")
+	assert.Nil(err)
+	err = r.addCredentials("account1", "account1-user", "account1-password", "/account1-user.creds")
 	assert.Nil(err)
 	r.Dump()
 	assert.True(Equal(r.Config(), `{

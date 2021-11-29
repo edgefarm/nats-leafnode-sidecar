@@ -21,7 +21,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"github.com/spf13/cobra"
 
@@ -32,9 +31,8 @@ import (
 )
 
 var (
-	cfgFile  string
-	natsURI  string
-	natsUser string
+	cfgFile string
+	natsURI string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -56,7 +54,12 @@ to quickly create a Cobra application.`,
 			fmt.Println(err)
 			os.Exit(1)
 		}
-		registryClient.Connect()
+		err = registryClient.Connect()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
+		exit := make(chan bool, 1)
 		// Signal handling.
 		go func() {
 			c := make(chan os.Signal, 1)
@@ -66,8 +69,12 @@ to quickly create a Cobra application.`,
 				log.Printf("Trapped \"%v\" signal\n", sig)
 				switch sig {
 				case syscall.SIGINT:
-					log.Println("Exiting...")
-					os.Exit(0)
+					err := registryClient.Shutdown()
+					if err != nil {
+						fmt.Println(err)
+						os.Exit(1)
+					}
+					exit <- true
 					return
 				case syscall.SIGTERM:
 					err := registryClient.Shutdown()
@@ -75,14 +82,14 @@ to quickly create a Cobra application.`,
 						fmt.Println(err)
 						os.Exit(1)
 					}
+					exit <- true
 					return
 				}
 			}
 		}()
 
-		for {
-			time.Sleep(time.Second)
-		}
+		<-exit
+		os.Exit(0)
 
 	},
 }

@@ -27,7 +27,7 @@ import (
 )
 
 const (
-	credentialsMountDirectory        = "/nats-credentials"
+	credentialsMountDirectory        = "/tmp/sidecar/nats-credentials"
 	edgefarmNetworkAccountNameSecret = "edgefarm.network-natsAccount"
 )
 

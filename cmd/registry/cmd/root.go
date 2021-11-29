@@ -31,7 +31,10 @@ import (
 	registry "github.com/edgefarm/nats-leafnode-sidecar/pkg/registry"
 )
 
-var cfgFile string
+var (
+	cfgFile string
+	natsURI string
+)
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -47,7 +50,12 @@ to quickly create a Cobra application.`,
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("registry called")
-		r := registry.NewRegistry()
+		r, err := registry.NewRegistry(natsURI)
+		if err != nil {
+			log.Fatal(err)
+		}
+		r.Start()
+
 		// Signal handling.
 		go func() {
 			c := make(chan os.Signal, 1)
@@ -89,6 +97,7 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.registry.yaml)")
+	rootCmd.PersistentFlags().StringVar(&natsURI, "natsuri", "nats://127.0.0.1:4222", "natsURI to connect to")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.

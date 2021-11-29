@@ -10,7 +10,8 @@ import (
 
 func TestUpdateConfigFile(t *testing.T) {
 	assert := assert.New(t)
-	r := NewRegistry()
+	r, err := NewRegistry("")
+	assert.Nil(err)
 	file, err := os.CreateTemp("", "TestUpdateConfigFile")
 	assert.Nil(err)
 	r.configFilePath = file.Name()
@@ -26,7 +27,8 @@ func TestUpdateConfigFile(t *testing.T) {
 
 func TestUpdateConfigFileWithSymlink(t *testing.T) {
 	assert := assert.New(t)
-	r := NewRegistry()
+	r, err := NewRegistry("")
+	assert.Nil(err)
 	file, err := os.CreateTemp("", "TestUpdateConfigFileWithSymlink")
 	assert.Nil(err)
 	symlink := fmt.Sprintf("%s.link", file.Name())

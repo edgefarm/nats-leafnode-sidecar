@@ -17,13 +17,14 @@ package client
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
+
+	"github.com/edgefarm/nats-leafnode-sidecar/pkg/common"
 )
 
 const (
-	natsTimeout       = time.Second * 10
-	registerSubject   = "register"
-	unregisterSubject = "unregister"
+	natsTimeout = time.Second * 10
 )
 
 // RegistryOptions is used to configure a Registry request
@@ -34,14 +35,14 @@ type RegistryOptions struct {
 // Register is used to configure a Register request
 func Register() *RegistryOptions {
 	return &RegistryOptions{
-		subject: registerSubject,
+		subject: common.RegisterSubject,
 	}
 }
 
 // Unregister is used to configure an Unregister request
 func Unregister() *RegistryOptions {
 	return &RegistryOptions{
-		subject: unregisterSubject,
+		subject: common.UnregisterSubject,
 	}
 }
 
@@ -55,9 +56,8 @@ func (c *Client) Registry(option *RegistryOptions) error {
 	if err != nil {
 		return err
 	}
-	// TODO: check resp.Data
-	if resp.Data == nil {
-		return nil
+	if string(resp.Data) != common.OkResponse {
+		return fmt.Errorf("request failed: %s", string(resp.Data))
 	}
 	return nil
 }
