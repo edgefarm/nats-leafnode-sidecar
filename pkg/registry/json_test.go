@@ -12,6 +12,7 @@ func TestCredentialsHandling(t *testing.T) {
 	r := NewRegistry()
 	err := r.addCredentials("account1", "account1-user", "account1-password", "/account1-user.creds")
 	assert.Nil(err)
+	r.Dump()
 	assert.True(Equal(r.Config(), `{
 		"accounts": {
 			"account1": {
@@ -36,6 +37,7 @@ func TestCredentialsHandling(t *testing.T) {
 	}`))
 	err = r.addCredentials("account2", "account2-user", "account2-password", "/account2-user.creds")
 	assert.Nil(err)
+	r.Dump()
 	assert.True(Equal(r.Config(), `{
 		"accounts": {
 			"account1": {
@@ -71,6 +73,7 @@ func TestCredentialsHandling(t *testing.T) {
 	}`))
 	err = r.removeCredentials("account1")
 	assert.Nil(err)
+	r.Dump()
 	assert.True(Equal(r.Config(), `{
 		"accounts": {
 			"account2": {
@@ -97,6 +100,7 @@ func TestCredentialsHandling(t *testing.T) {
 	// try to remove non existent account
 	err = r.removeCredentials("account3")
 	assert.NotNil(err)
+	r.Dump()
 	assert.True(Equal(r.Config(), `{
 		"accounts": {
 			"account2": {
@@ -121,6 +125,7 @@ func TestCredentialsHandling(t *testing.T) {
 	}`))
 	err = r.removeCredentials("account2")
 	assert.Nil(err)
+	r.Dump()
 	assert.True(Equal(r.Config(), `{
 		"accounts": {},
 		"http": 8222,
@@ -132,6 +137,7 @@ func TestCredentialsHandling(t *testing.T) {
 	}`))
 	err = r.addCredentials("account3", "account3-user", "account3-password", "/account3-user.creds")
 	assert.Nil(err)
+	r.Dump()
 	assert.True(Equal(r.Config(), `{
 		"accounts": {
 			"account3": {
@@ -156,6 +162,7 @@ func TestCredentialsHandling(t *testing.T) {
 	}`))
 	err = r.addCredentials("account1", "account1-user", "account1-password", "/account1-user.creds")
 	assert.Nil(err)
+	r.Dump()
 	assert.True(Equal(r.Config(), `{
 		"accounts": {
 			"account1": {
@@ -189,14 +196,15 @@ func TestCredentialsHandling(t *testing.T) {
 		"pid_file": "/var/run/nats.pid",
 		"server_name": "edge"
 	}`))
-	// try to register same account twice
-	err = r.addCredentials("account1", "account1-user", "account1-password", "/account1-user.creds")
-	assert.NotNil(err)
+	// update credentials
+	err = r.addCredentials("account1", "account1-user", "account1-newpassword", "/account1-user.creds")
+	assert.Nil(err)
+	r.Dump()
 	assert.True(Equal(r.Config(), `{
 		"accounts": {
 			"account1": {
 				"users": {
-					"password": "account1-password",
+					"password": "account1-newpassword",
 					"user": "account1-user"
 				}
 			},

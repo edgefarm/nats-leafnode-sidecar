@@ -33,19 +33,38 @@ func jsonPrettyPrint(in string) string {
 }
 
 func (r *Registry) addCredentials(userAccountName string, user string, password string, creds string) error {
-	patchJSON := []byte(fmt.Sprintf(`[{"op": "add", "path": "/leafnodes/remotes/-", "value": {"url": "%s", "credentials": "%s.creds", "account": "%s"}}]`, ngsHost, user, userAccountName))
-	patch, err := jsonpatch.DecodePatch(patchJSON)
+	raw, err := decodeRawJSON(r.configFileContent)
 	if err != nil {
 		return err
 	}
 
-	modified, err := patch.Apply([]byte(r.configFileContent))
+	//  check if remote already exists
+	remoteFound := false
+	fmt.Println(raw["leafnodes"].(map[string]interface{})["remotes"].([]interface{}))
+	for _, r := range raw["leafnodes"].(map[string]interface{})["remotes"].([]interface{}) {
+		remote := r.(map[string]interface{})
+		fmt.Println(remote["account"])
+		if ok := remote["account"] == userAccountName; ok {
+			remoteFound = true
+			break
+		}
+	}
+
+	modified, err := json.Marshal(raw)
 	if err != nil {
 		return err
 	}
-	raw, err := decodeRawJSON(r.configFileContent)
-	if err != nil {
-		return err
+	if !remoteFound {
+		patchJSON := []byte(fmt.Sprintf(`[{"op": "add", "path": "/leafnodes/remotes/-", "value": {"url": "%s", "credentials": "%s.creds", "account": "%s"}}]`, ngsHost, user, userAccountName))
+		patch, err := jsonpatch.DecodePatch(patchJSON)
+		if err != nil {
+			return err
+		}
+
+		modified, err = patch.Apply([]byte(r.configFileContent))
+		if err != nil {
+			return err
+		}
 	}
 
 	accounts := raw["accounts"].(map[string]interface{})
@@ -59,8 +78,8 @@ func (r *Registry) addCredentials(userAccountName string, user string, password 
 	if err != nil {
 		return err
 	}
-	patchJSON = []byte(fmt.Sprintf(`[{"op": "replace", "path": "/accounts", "value": %s}]`, accountsString))
-	patch, err = jsonpatch.DecodePatch(patchJSON)
+	patchJSON := []byte(fmt.Sprintf(`[{"op": "replace", "path": "/accounts", "value": %s}]`, accountsString))
+	patch, err := jsonpatch.DecodePatch(patchJSON)
 	if err != nil {
 		return err
 	}
