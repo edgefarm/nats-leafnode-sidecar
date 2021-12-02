@@ -8,13 +8,13 @@ tidy:
 	go mod tidy
 	go mod vendor
 
-client: test tidy
+client: tidy test
 	GOOS=linux go build $(GO_LDFLAGS) -o ${BIN_DIR}/client cmd/client/main.go
 
-registry: test tidy
+registry: tidy test
 	GOOS=linux go build $(GO_LDFLAGS) -o ${BIN_DIR}/registry cmd/registry/main.go
 
-build: client registry
+build: test client registry
 
 test: tidy
 	go test ./...

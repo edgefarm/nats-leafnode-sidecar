@@ -15,7 +15,6 @@ const (
 var config = `{
 	"pid_file": "/var/run/nats.pid",
 	"http": 8222,
-	"server_name": "edge",
 	"leafnodes": {
 		"remotes": []
 	},

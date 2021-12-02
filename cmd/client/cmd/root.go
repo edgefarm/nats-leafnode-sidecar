@@ -33,6 +33,7 @@ import (
 var (
 	cfgFile string
 	natsURI string
+	creds   string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -49,7 +50,7 @@ to quickly create a Cobra application.`,
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("client called")
-		registryClient, err := client.NewClient(natsURI)
+		registryClient, err := client.NewClient(creds, natsURI)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -111,7 +112,8 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.client.yaml)")
-	rootCmd.PersistentFlags().StringVar(&natsURI, "natsuri", "nats://127.0.0.1:4222", "natsURI to connect to")
+	rootCmd.PersistentFlags().StringVar(&natsURI, "natsuri", "nats://nats.nats:4222", "natsURI to connect to")
+	rootCmd.PersistentFlags().StringVar(&creds, "creds", "/nats-credentials", "path where to find the nats credentials")
 
 }
 

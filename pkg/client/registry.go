@@ -48,11 +48,11 @@ func Unregister() *RegistryOptions {
 
 // Registry is used to register or unregister an application to the nats server
 func (c *Client) Registry(option *RegistryOptions) error {
-	j, err := json.Marshal(c.Creds)
+	j, err := json.Marshal(c.creds)
 	if err != nil {
 		return err
 	}
-	resp, err := c.NatsConn.Request(option.subject, j, natsTimeout)
+	resp, err := c.nc.Request(option.subject, j, natsTimeout)
 	if err != nil {
 		return err
 	}

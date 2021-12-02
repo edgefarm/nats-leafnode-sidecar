@@ -34,6 +34,7 @@ import (
 var (
 	cfgFile string
 	natsURI string
+	creds   string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -50,7 +51,7 @@ to quickly create a Cobra application.`,
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("registry called")
-		r, err := registry.NewRegistry(natsURI)
+		r, err := registry.NewRegistry(creds, natsURI)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -97,7 +98,8 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.registry.yaml)")
-	rootCmd.PersistentFlags().StringVar(&natsURI, "natsuri", "nats://127.0.0.1:4222", "natsURI to connect to")
+	rootCmd.PersistentFlags().StringVar(&natsURI, "natsuri", "nats://nats.nats:4222", "natsURI to connect to")
+	rootCmd.PersistentFlags().StringVar(&creds, "creds", "/creds", "path where to find the nats credentials")
 
 	// Cobra also supports local flags, which will only run
 	// when this action is called directly.

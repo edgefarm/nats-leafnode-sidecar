@@ -5,4 +5,4 @@ RUN make registry
 
 FROM alpine:3.14
 COPY --from=builder /code/bin/registry /registry
-ENTRYPOINT ["/registry"]
+CMD ["/registry"]

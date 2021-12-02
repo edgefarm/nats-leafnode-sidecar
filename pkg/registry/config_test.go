@@ -10,8 +10,20 @@ import (
 
 func TestUpdateConfigFile(t *testing.T) {
 	assert := assert.New(t)
-	r, err := NewRegistry("")
-	assert.Nil(err)
+	r := &Registry{
+		configFileContent: `{
+			"accounts": {},
+			"http": 8222,
+			"leafnodes": {
+				"remotes": []
+			},
+			"pid_file": "/var/run/nats.pid",
+			"server_name": "edge"
+		}`,
+		credsFilesPath: "/tmp/test/creds",
+		configFilePath: "/tmp/test/config",
+		natsConn:       nil,
+	}
 	file, err := os.CreateTemp("", "TestUpdateConfigFile")
 	assert.Nil(err)
 	r.configFilePath = file.Name()
@@ -27,8 +39,20 @@ func TestUpdateConfigFile(t *testing.T) {
 
 func TestUpdateConfigFileWithSymlink(t *testing.T) {
 	assert := assert.New(t)
-	r, err := NewRegistry("")
-	assert.Nil(err)
+	r := &Registry{
+		configFileContent: `{
+			"accounts": {},
+			"http": 8222,
+			"leafnodes": {
+				"remotes": []
+			},
+			"pid_file": "/var/run/nats.pid",
+			"server_name": "edge"
+		}`,
+		credsFilesPath: "/tmp/test/creds",
+		configFilePath: "/tmp/test/config",
+		natsConn:       nil,
+	}
 	file, err := os.CreateTemp("", "TestUpdateConfigFileWithSymlink")
 	assert.Nil(err)
 	symlink := fmt.Sprintf("%s.link", file.Name())

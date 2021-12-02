@@ -19,7 +19,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"path/filepath"
+	"time"
 
 	api "github.com/edgefarm/edgefarm.network/pkg/apis/config/v1alpha1"
 	files "github.com/edgefarm/nats-leafnode-sidecar/pkg/files"
@@ -27,8 +29,9 @@ import (
 )
 
 const (
-	credentialsMountDirectory        = "/tmp/sidecar/nats-credentials"
+	credentialsMountDirectory        = "/nats-credentials"
 	edgefarmNetworkAccountNameSecret = "edgefarm.network-natsAccount"
+	connectTimeoutSeconds            = 10
 )
 
 // NatsCredentials contains the credentials for the nats server.
@@ -39,14 +42,14 @@ type NatsCredentials struct {
 
 // Client is a client for the registry service.
 type Client struct {
-	// Creds contains the credentials for the current application
-	Creds *api.Credentials
+	// creds contains the credentials for the current application
+	creds *api.Credentials
 	// Nats connection
-	NatsConn *nats.Conn
+	nc *nats.Conn
 }
 
 // NewClient creates a new client for the registry service.
-func NewClient(natsURI string) (*Client, error) {
+func NewClient(credentialsMountDirectory string, natsURI string) (*Client, error) {
 	creds := &api.Credentials{}
 	err := func() error {
 		f, err := files.GetSymlinks(credentialsMountDirectory)
@@ -72,20 +75,59 @@ func NewClient(natsURI string) (*Client, error) {
 		return nil, err
 	}
 
-	nc, err := nats.Connect(natsURI)
-	if err != nil {
-		return nil, err
-	}
+	opts := []nats.Option{nats.Timeout(time.Duration(1) * time.Second)}
+	opts = setupConnOptions(opts)
+	ncChan := make(chan *nats.Conn)
+	go func() {
+		for {
+			fmt.Printf("\rConnecting to nats server: %s\n", natsURI)
+			nc, err := nats.Connect(natsURI, opts...)
+			if err != nil {
+				fmt.Printf("Connect failed to %s: %s\n", natsURI, err)
+			} else {
+				fmt.Printf("Connected to '%s'\n", natsURI)
+				ncChan <- nc
+				return
+			}
+			func() {
+				for i := connectTimeoutSeconds; i >= 0; i-- {
+					time.Sleep(time.Second)
+					fmt.Printf("\rReconnecting in %2d seconds", i)
+				}
+				fmt.Println("")
+			}()
+		}
+	}()
+
+	nc := <-ncChan
 
 	return &Client{
-		Creds:    creds,
-		NatsConn: nc,
+		creds: creds,
+		nc:    nc,
 	}, nil
+}
+
+func setupConnOptions(opts []nats.Option) []nats.Option {
+	totalWait := 10 * time.Minute
+	reconnectDelay := 2 * time.Second
+
+	opts = append(opts, nats.ReconnectWait(reconnectDelay))
+	opts = append(opts, nats.MaxReconnects(int(totalWait/reconnectDelay)))
+	opts = append(opts, nats.DisconnectErrHandler(func(nc *nats.Conn, err error) {
+		log.Printf("Disconnected due to:%s, will attempt reconnects for %.0fm", err, totalWait.Minutes())
+	}))
+	opts = append(opts, nats.ReconnectHandler(func(nc *nats.Conn) {
+		log.Printf("Reconnected [%s]", nc.ConnectedUrl())
+	}))
+	opts = append(opts, nats.ClosedHandler(func(nc *nats.Conn) {
+		log.Fatalf("Exiting: %v", nc.LastError())
+	}))
+	return opts
 }
 
 // Connect registeres the application and connects to the nats server.
 func (c *Client) Connect() error {
-	fmt.Printf("%+v", c.Creds)
+	fmt.Printf("Credentials found for userAccountName %s\n", c.creds.UserAccountName)
 	err := c.Registry(Register())
 	if err != nil {
 		return err
@@ -101,6 +143,6 @@ func (c *Client) Shutdown() error {
 	if err != nil {
 		return err
 	}
-	c.NatsConn.Close()
+	c.nc.Close()
 	return nil
 }

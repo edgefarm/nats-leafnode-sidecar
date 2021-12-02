@@ -3,7 +3,9 @@ package registry
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
+	"time"
 
 	"github.com/edgefarm/nats-leafnode-sidecar/pkg/common"
 	"github.com/nats-io/nats.go"
@@ -12,8 +14,8 @@ import (
 )
 
 const (
-	credsFilesPath = "/tmp/sidecar/creds"
-	configFilePath = "/tmp/sidecar/nats.json"
+	configFilePath        = "/config/nats.json"
+	connectTimeoutSeconds = 10
 )
 
 // Registry is a registry for nats-leafnodes
@@ -21,27 +23,61 @@ type Registry struct {
 	configFileContent string
 	credsFilesPath    string
 	configFilePath    string
-	// Nats connection
-	natsConn *nats.Conn
+	natsConn          *nats.Conn
 }
 
 // NewRegistry creates a new registry
-func NewRegistry(natsURI string) (*Registry, error) {
-	nc := &nats.Conn{}
-	if natsURI != "" {
-		var err error
-		nc, err = nats.Connect(natsURI)
-		if err != nil {
-			return nil, err
+func NewRegistry(creds string, natsURI string) (*Registry, error) {
+	opts := []nats.Option{nats.Timeout(time.Duration(1) * time.Second)}
+	opts = setupConnOptions(opts)
+	ncChan := make(chan *nats.Conn)
+	go func() {
+		for {
+			fmt.Printf("\rConnecting to nats server: %s\n", natsURI)
+			nc, err := nats.Connect(natsURI, opts...)
+			if err != nil {
+				fmt.Printf("Connect failed to %s: %s\n", natsURI, err)
+			} else {
+				fmt.Printf("Connected to '%s'\n", natsURI)
+				ncChan <- nc
+				return
+			}
+			func() {
+				for i := connectTimeoutSeconds; i >= 0; i-- {
+					time.Sleep(time.Second)
+					fmt.Printf("\rReconnecting in %2d seconds", i)
+				}
+				fmt.Println("")
+			}()
 		}
-	}
+	}()
+
+	nc := <-ncChan
 	r := &Registry{
 		configFileContent: string(config),
-		credsFilesPath:    credsFilesPath,
+		credsFilesPath:    creds,
 		configFilePath:    configFilePath,
 		natsConn:          nc,
 	}
 	return r, nil
+}
+
+func setupConnOptions(opts []nats.Option) []nats.Option {
+	totalWait := 10 * time.Minute
+	reconnectDelay := 2 * time.Second
+
+	opts = append(opts, nats.ReconnectWait(reconnectDelay))
+	opts = append(opts, nats.MaxReconnects(int(totalWait/reconnectDelay)))
+	opts = append(opts, nats.DisconnectErrHandler(func(nc *nats.Conn, err error) {
+		log.Printf("Disconnected due to:%s, will attempt reconnects for %.0fm", err, totalWait.Minutes())
+	}))
+	opts = append(opts, nats.ReconnectHandler(func(nc *nats.Conn) {
+		log.Printf("Reconnected [%s]", nc.ConnectedUrl())
+	}))
+	opts = append(opts, nats.ClosedHandler(func(nc *nats.Conn) {
+		log.Fatalf("Exiting: %v", nc.LastError())
+	}))
+	return opts
 }
 
 // Start starts the registry and handles all incoming requests for registering and unregistering
