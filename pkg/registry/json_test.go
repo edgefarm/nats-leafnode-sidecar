@@ -29,10 +29,10 @@ func TestCredentialsHandling(t *testing.T) {
 	assert.True(Equal(r.Config(), `{
 		"accounts": {
 			"account1": {
-				"users": {
+				"users": [{
 					"password": "account1-password",
 					"user": "account1-user"
-				}
+				}]
 			}
 		},
 		"http": 8222,
@@ -54,16 +54,16 @@ func TestCredentialsHandling(t *testing.T) {
 	assert.True(Equal(r.Config(), `{
 		"accounts": {
 			"account1": {
-				"users": {
+				"users": [{
 					"password": "account1-password",
 					"user": "account1-user"
-				}
+				}]
 			},
 			"account2": {
-				"users": {
+				"users": [{
 					"password": "account2-password",
 					"user": "account2-user"
-				}
+				}]
 			}
 		},
 		"http": 8222,
@@ -90,10 +90,10 @@ func TestCredentialsHandling(t *testing.T) {
 	assert.True(Equal(r.Config(), `{
 		"accounts": {
 			"account2": {
-				"users": {
+				"users": [{
 					"password": "account2-password",
 					"user": "account2-user"
-				}
+				}]
 			}
 		},
 		"http": 8222,
@@ -117,10 +117,10 @@ func TestCredentialsHandling(t *testing.T) {
 	assert.True(Equal(r.Config(), `{
 		"accounts": {
 			"account2": {
-				"users": {
+				"users": [{
 					"password": "account2-password",
 					"user": "account2-user"
-				}
+				}]
 			}
 		},
 		"http": 8222,
@@ -154,10 +154,10 @@ func TestCredentialsHandling(t *testing.T) {
 	assert.True(Equal(r.Config(), `{
 		"accounts": {
 			"account3": {
-				"users": {
+				"users": [{
 					"password": "account3-password",
 					"user": "account3-user"
-				}
+				}]
 			}
 		},
 		"http": 8222,
@@ -179,16 +179,16 @@ func TestCredentialsHandling(t *testing.T) {
 	assert.True(Equal(r.Config(), `{
 		"accounts": {
 			"account1": {
-				"users": {
+				"users": [{
 					"password": "account1-password",
 					"user": "account1-user"
-				}
+				}]
 			},
 			"account3": {
-				"users": {
+				"users": [{
 					"password": "account3-password",
 					"user": "account3-user"
-				}
+				}]
 			}
 		},
 		"http": 8222,
@@ -216,16 +216,16 @@ func TestCredentialsHandling(t *testing.T) {
 	assert.True(Equal(r.Config(), `{
 		"accounts": {
 			"account1": {
-				"users": {
+				"users": [{
 					"password": "account1-newpassword",
 					"user": "account1-user"
-				}
+				}]
 			},
 			"account3": {
-				"users": {
+				"users": [{
 					"password": "account3-password",
 					"user": "account3-user"
-				}
+				}]
 			}
 		},
 		"http": 8222,

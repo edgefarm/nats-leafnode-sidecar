@@ -66,15 +66,19 @@ func (r *Registry) addCredentials(userAccountName string, user string, password 
 
 	accounts := raw["accounts"].(map[string]interface{})
 	accounts[userAccountName] = map[string]interface{}{
-		"users": map[string]interface{}{
-			"user":     user,
-			"password": password,
+		"users": []map[string]interface{}{
+			{
+				"user":     user,
+				"password": password,
+			},
 		},
 	}
+
 	accountsString, err := json.Marshal(accounts)
 	if err != nil {
 		return err
 	}
+
 	patchJSON := []byte(fmt.Sprintf(`[{"op": "replace", "path": "/accounts", "value": %s}]`, accountsString))
 	patch, err := jsonpatch.DecodePatch(patchJSON)
 	if err != nil {
