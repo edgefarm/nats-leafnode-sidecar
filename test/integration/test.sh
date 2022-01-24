@@ -60,7 +60,6 @@ function prepare {
 }
 
 function cleanup {
-    echo "Cleaning up"
     [[ $(docker ps -f "name=$NATS_SERVER_NAME" --format '{{.Names}}') == $NATS_SERVER_NAME ]] && \
     docker kill ${NATS_SERVER_NAME} >& /dev/null
 }
@@ -121,6 +120,22 @@ function cleanup_test1() {
     TEST_FAILED=0
 }
 
+function check_accounts_file {
+    if [ -f "${1}/creds/myAccount" ]; then
+        if [ -z $(cat ${1}/creds/myAccount | grep "myToken") ]; then
+            error_message "token not found in creds file"
+            TEST_FAILED=1
+        fi
+        if [ -z $(cat ${1}/creds/myAccount | grep "myNkeySeed") ]; then
+            error_message "nkey seed not found in creds file"
+            TEST_FAILED=1
+        fi
+
+    else
+        error_message "creds file not found"
+    fi
+}
+
 function test1 {
     echo -e "\e[7mRunning test1...\e[27m"
     TMP_DIR=$(mktemp -d)
@@ -148,6 +163,8 @@ function test1 {
     [[ $? -eq 0 ]] || TEST_FAILED=1
     assert_eq `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[0].account'` "myAccount" "remote account not equal"
     [[ $? -eq 0 ]] || TEST_FAILED=1
+    check_accounts_file ${TMP_DIR}
+    sleep 0.5
 
     check_test1_after_runtime $client_pid $registry_pid
     test_status $TEST_FAILED "Test1" ${TMP_DIR}
