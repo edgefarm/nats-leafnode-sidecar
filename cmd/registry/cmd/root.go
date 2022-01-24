@@ -32,30 +32,31 @@ import (
 )
 
 var (
-	cfgFile string
-	natsURI string
-	creds   string
+	cfgFile    string
+	natsURI    string
+	creds      string
+	natsConfig string
 )
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:   "registry",
-	Short: "A brief description of your application",
-	Long: `A longer description that spans multiple lines and likely contains
-examples and usage of using your application. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
+	Short: "Registry takes care of handling nats leafnode connections",
+	Long: `Registry takes care of handling nats leafnode connections. It
+	waits for a new client registration which provides all needed information
+	to handle this connection. A client can also unregister which results in a
+	deletion of this information. Registry modifies the nats configuration file with
+	the new information provided to the nats server.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("registry called")
-		r, err := registry.NewRegistry(creds, natsURI)
+		r, err := registry.NewRegistry(natsConfig, creds, natsURI)
 		if err != nil {
 			log.Fatal(err)
 		}
-		r.Start()
+		err = r.Start()
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		// Signal handling.
 		go func() {
@@ -66,7 +67,7 @@ to quickly create a Cobra application.`,
 				log.Printf("Trapped \"%v\" signal\n", sig)
 				switch sig {
 				case syscall.SIGINT:
-					log.Println("Exiting...")
+					r.Shutdown()
 					os.Exit(0)
 					return
 				case syscall.SIGTERM:
@@ -99,6 +100,7 @@ func init() {
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.registry.yaml)")
 	rootCmd.PersistentFlags().StringVar(&natsURI, "natsuri", "nats://nats.nats:4222", "natsURI to connect to")
+	rootCmd.PersistentFlags().StringVar(&natsConfig, "natsconfig", "/config/nats.json", "path to nats config file")
 	rootCmd.PersistentFlags().StringVar(&creds, "creds", "/creds", "path where to find the nats credentials")
 
 	// Cobra also supports local flags, which will only run

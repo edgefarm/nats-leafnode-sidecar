@@ -3,7 +3,6 @@ package registry
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"time"
 
@@ -14,22 +13,23 @@ import (
 )
 
 const (
-	configFilePath        = "/config/nats.json"
 	connectTimeoutSeconds = 10
 )
 
 // Registry is a registry for nats-leafnodes
 type Registry struct {
-	configFileContent string
-	credsFilesPath    string
-	configFilePath    string
-	natsConn          *nats.Conn
+	configFileContent      string
+	credsFilesPath         string
+	configFilePath         string
+	natsConn               *nats.Conn
+	registerSubscription   *nats.Subscription
+	unregisterSubscription *nats.Subscription
 }
 
 // NewRegistry creates a new registry
-func NewRegistry(creds string, natsURI string) (*Registry, error) {
+func NewRegistry(natsConfig string, creds string, natsURI string) (*Registry, error) {
 	opts := []nats.Option{nats.Timeout(time.Duration(1) * time.Second)}
-	opts = setupConnOptions(opts)
+	opts = common.SetupConnOptions(opts)
 	ncChan := make(chan *nats.Conn)
 	go func() {
 		for {
@@ -56,33 +56,16 @@ func NewRegistry(creds string, natsURI string) (*Registry, error) {
 	r := &Registry{
 		configFileContent: string(config),
 		credsFilesPath:    creds,
-		configFilePath:    configFilePath,
+		configFilePath:    natsConfig,
 		natsConn:          nc,
 	}
 	return r, nil
 }
 
-func setupConnOptions(opts []nats.Option) []nats.Option {
-	totalWait := 10 * time.Minute
-	reconnectDelay := 2 * time.Second
-
-	opts = append(opts, nats.ReconnectWait(reconnectDelay))
-	opts = append(opts, nats.MaxReconnects(int(totalWait/reconnectDelay)))
-	opts = append(opts, nats.DisconnectErrHandler(func(nc *nats.Conn, err error) {
-		log.Printf("Disconnected due to:%s, will attempt reconnects for %.0fm", err, totalWait.Minutes())
-	}))
-	opts = append(opts, nats.ReconnectHandler(func(nc *nats.Conn) {
-		log.Printf("Reconnected [%s]", nc.ConnectedUrl())
-	}))
-	opts = append(opts, nats.ClosedHandler(func(nc *nats.Conn) {
-		log.Fatalf("Exiting: %v", nc.LastError())
-	}))
-	return opts
-}
-
 // Start starts the registry and handles all incoming requests for registering and unregistering
 func (r *Registry) Start() error {
-	_, err := r.natsConn.Subscribe(common.RegisterSubject, func(m *nats.Msg) {
+	var err error
+	r.registerSubscription, err = r.natsConn.Subscribe(common.RegisterSubject, func(m *nats.Msg) {
 		fmt.Println("Received register request")
 		userCreds := &api.Credentials{}
 		err := json.Unmarshal(m.Data, userCreds)
@@ -101,11 +84,11 @@ func (r *Registry) Start() error {
 				fmt.Println(err)
 			}
 		}
-		err = r.updateConfigFile()
+		err = r.writeFile(fmt.Sprintf("%s/%s", r.credsFilesPath, userCreds.UserAccountName), userCreds.Creds)
 		if err != nil {
 			fmt.Println(err)
 		}
-		err = r.writeFile(fmt.Sprintf("%s/%s", r.credsFilesPath, userCreds.UserAccountName), userCreds.Creds)
+		err = r.updateConfigFile()
 		if err != nil {
 			fmt.Println(err)
 		}
@@ -114,7 +97,7 @@ func (r *Registry) Start() error {
 		return err
 	}
 
-	_, err = r.natsConn.Subscribe(common.UnregisterSubject, func(m *nats.Msg) {
+	r.unregisterSubscription, err = r.natsConn.Subscribe(common.UnregisterSubject, func(m *nats.Msg) {
 		fmt.Println("Received unregister request")
 		userCreds := &api.Credentials{}
 		err := json.Unmarshal(m.Data, userCreds)
@@ -151,5 +134,12 @@ func (r *Registry) Start() error {
 // Shutdown shuts down the registry
 func (r *Registry) Shutdown() {
 	fmt.Println("Shutting down registry")
+	if r.registerSubscription != nil {
+		r.registerSubscription.Unsubscribe()
+	}
+	if r.unregisterSubscription != nil {
+		r.unregisterSubscription.Unsubscribe()
+	}
+	r.natsConn.Close()
 	os.Exit(0)
 }

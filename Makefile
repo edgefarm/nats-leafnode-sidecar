@@ -16,8 +16,13 @@ registry: tidy test
 
 build: test client registry
 
+test-all: test integration-test
+
 test: tidy
 	go test ./...
+
+integration-test:
+	cd test/integration && ./test.sh
 
 clean:
 	rm -rf ${BIN_DIR}/client ${BIN_DIR}/registry

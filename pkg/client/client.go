@@ -19,18 +19,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"path/filepath"
 	"time"
 
 	api "github.com/edgefarm/edgefarm.network/pkg/apis/config/v1alpha1"
+	common "github.com/edgefarm/nats-leafnode-sidecar/pkg/common"
 	files "github.com/edgefarm/nats-leafnode-sidecar/pkg/files"
 	nats "github.com/nats-io/nats.go"
 )
 
 const (
-	credentialsMountDirectory        = "/nats-credentials"
-	edgefarmNetworkAccountNameSecret = "edgefarm.network-natsAccount"
+	edgefarmNetworkAccountNameSecret = "edgefarm.network-natsUserData"
 	connectTimeoutSeconds            = 10
 )
 
@@ -76,7 +75,7 @@ func NewClient(credentialsMountDirectory string, natsURI string) (*Client, error
 	}
 
 	opts := []nats.Option{nats.Timeout(time.Duration(1) * time.Second)}
-	opts = setupConnOptions(opts)
+	opts = common.SetupConnOptions(opts)
 	ncChan := make(chan *nats.Conn)
 	go func() {
 		for {
@@ -105,24 +104,6 @@ func NewClient(credentialsMountDirectory string, natsURI string) (*Client, error
 		creds: creds,
 		nc:    nc,
 	}, nil
-}
-
-func setupConnOptions(opts []nats.Option) []nats.Option {
-	totalWait := 10 * time.Minute
-	reconnectDelay := 2 * time.Second
-
-	opts = append(opts, nats.ReconnectWait(reconnectDelay))
-	opts = append(opts, nats.MaxReconnects(int(totalWait/reconnectDelay)))
-	opts = append(opts, nats.DisconnectErrHandler(func(nc *nats.Conn, err error) {
-		log.Printf("Disconnected due to:%s, will attempt reconnects for %.0fm", err, totalWait.Minutes())
-	}))
-	opts = append(opts, nats.ReconnectHandler(func(nc *nats.Conn) {
-		log.Printf("Reconnected [%s]", nc.ConnectedUrl())
-	}))
-	opts = append(opts, nats.ClosedHandler(func(nc *nats.Conn) {
-		log.Fatalf("Exiting: %v", nc.LastError())
-	}))
-	return opts
 }
 
 // Connect registeres the application and connects to the nats server.
