@@ -19,6 +19,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"path/filepath"
 	"time"
 
@@ -79,21 +80,21 @@ func NewClient(credentialsMountDirectory string, natsURI string) (*Client, error
 	ncChan := make(chan *nats.Conn)
 	go func() {
 		for {
-			fmt.Printf("\rConnecting to nats server: %s\n", natsURI)
+			log.Printf("\rConnecting to nats server: %s\n", natsURI)
 			nc, err := nats.Connect(natsURI, opts...)
 			if err != nil {
-				fmt.Printf("Connect failed to %s: %s\n", natsURI, err)
+				log.Printf("Connect failed to %s: %s\n", natsURI, err)
 			} else {
-				fmt.Printf("Connected to '%s'\n", natsURI)
+				log.Printf("Connected to '%s'\n", natsURI)
 				ncChan <- nc
 				return
 			}
 			func() {
 				for i := connectTimeoutSeconds; i >= 0; i-- {
 					time.Sleep(time.Second)
-					fmt.Printf("\rReconnecting in %2d seconds", i)
+					log.Printf("\rReconnecting in %2d seconds", i)
 				}
-				fmt.Println("")
+				log.Println("")
 			}()
 		}
 	}()
@@ -108,7 +109,7 @@ func NewClient(credentialsMountDirectory string, natsURI string) (*Client, error
 
 // Connect registeres the application and connects to the nats server.
 func (c *Client) Connect() error {
-	fmt.Printf("Credentials found for userAccountName %s\n", c.creds.UserAccountName)
+	log.Printf("Credentials found for userAccountName %s\n", c.creds.UserAccountName)
 	err := c.Registry(Register())
 	if err != nil {
 		return err
@@ -119,7 +120,7 @@ func (c *Client) Connect() error {
 
 // Shutdown unregisteres the application and shuts down the nats connection.
 func (c *Client) Shutdown() error {
-	fmt.Println("Shutting down client")
+	log.Println("Shutting down client")
 	err := c.Registry(Unregister())
 	if err != nil {
 		return err

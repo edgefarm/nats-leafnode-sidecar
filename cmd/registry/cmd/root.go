@@ -16,7 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -48,7 +47,7 @@ var rootCmd = &cobra.Command{
 	deletion of this information. Registry modifies the nats configuration file with
 	the new information provided to the nats server.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("registry called")
+		log.Println("registry called")
 		r, err := registry.NewRegistry(natsConfig, creds, natsURI)
 		if err != nil {
 			log.Fatal(err)
@@ -64,12 +63,9 @@ var rootCmd = &cobra.Command{
 			signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 
 			for sig := range c {
-				log.Printf("Trapped \"%v\" signal\n", sig)
 				switch sig {
 				case syscall.SIGINT:
-					r.Shutdown()
-					os.Exit(0)
-					return
+					fallthrough
 				case syscall.SIGTERM:
 					r.Shutdown()
 					return
@@ -86,7 +82,7 @@ var rootCmd = &cobra.Command{
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		os.Exit(1)
 	}
 }
@@ -117,7 +113,7 @@ func initConfig() {
 		// Find home directory.
 		home, err := homedir.Dir()
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			os.Exit(1)
 		}
 
@@ -130,6 +126,6 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+		log.Println("Using config file:", viper.ConfigFileUsed())
 	}
 }

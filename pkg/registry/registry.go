@@ -3,6 +3,7 @@ package registry
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -33,21 +34,21 @@ func NewRegistry(natsConfig string, creds string, natsURI string) (*Registry, er
 	ncChan := make(chan *nats.Conn)
 	go func() {
 		for {
-			fmt.Printf("\rConnecting to nats server: %s\n", natsURI)
+			log.Printf("\rConnecting to nats server: %s\n", natsURI)
 			nc, err := nats.Connect(natsURI, opts...)
 			if err != nil {
-				fmt.Printf("Connect failed to %s: %s\n", natsURI, err)
+				log.Printf("Connect failed to %s: %s\n", natsURI, err)
 			} else {
-				fmt.Printf("Connected to '%s'\n", natsURI)
+				log.Printf("Connected to '%s'\n", natsURI)
 				ncChan <- nc
 				return
 			}
 			func() {
 				for i := connectTimeoutSeconds; i >= 0; i-- {
 					time.Sleep(time.Second)
-					fmt.Printf("\rReconnecting in %2d seconds", i)
+					log.Printf("\rReconnecting in %2d seconds", i)
 				}
-				fmt.Println("")
+				log.Println("")
 			}()
 		}
 	}()
@@ -66,31 +67,31 @@ func NewRegistry(natsConfig string, creds string, natsURI string) (*Registry, er
 func (r *Registry) Start() error {
 	var err error
 	r.registerSubscription, err = r.natsConn.Subscribe(common.RegisterSubject, func(m *nats.Msg) {
-		fmt.Println("Received register request")
+		log.Println("Received register request")
 		userCreds := &api.Credentials{}
 		err := json.Unmarshal(m.Data, userCreds)
 		if err != nil {
-			fmt.Println("Error unmarshalling credentials: ", err)
+			log.Println("Error unmarshalling credentials: ", err)
 		}
 		err = r.addCredentials(userCreds.UserAccountName, userCreds.Username, userCreds.Password, userCreds.Creds)
 		if err == nil {
 			err = r.natsConn.Publish(m.Reply, []byte(common.OkResponse))
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 			}
 		} else {
 			err = r.natsConn.Publish(m.Reply, []byte(fmt.Sprintf("%s: %s", common.ErrorResponse, err)))
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 			}
 		}
 		err = r.writeFile(fmt.Sprintf("%s/%s", r.credsFilesPath, userCreds.UserAccountName), userCreds.Creds)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 		err = r.updateConfigFile()
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 	})
 	if err != nil {
@@ -98,31 +99,31 @@ func (r *Registry) Start() error {
 	}
 
 	r.unregisterSubscription, err = r.natsConn.Subscribe(common.UnregisterSubject, func(m *nats.Msg) {
-		fmt.Println("Received unregister request")
+		log.Println("Received unregister request")
 		userCreds := &api.Credentials{}
 		err := json.Unmarshal(m.Data, userCreds)
 		if err != nil {
-			fmt.Println("Error unmarshalling credentials: ", err)
+			log.Println("Error unmarshalling credentials: ", err)
 		}
 		err = r.removeCredentials(userCreds.UserAccountName)
 		if err == nil {
 			err = r.natsConn.Publish(m.Reply, []byte(common.OkResponse))
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 			}
 		} else {
 			err = r.natsConn.Publish(m.Reply, []byte(fmt.Sprintf("%s: %s", common.ErrorResponse, err)))
 			if err != nil {
-				fmt.Println(err)
+				log.Println(err)
 			}
 		}
 		err = r.updateConfigFile()
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 		err = r.removeFile(fmt.Sprintf("%s/%s", r.credsFilesPath, userCreds.UserAccountName))
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 		}
 	})
 	if err != nil {
@@ -133,7 +134,7 @@ func (r *Registry) Start() error {
 
 // Shutdown shuts down the registry
 func (r *Registry) Shutdown() {
-	fmt.Println("Shutting down registry")
+	log.Println("Shutting down registry")
 	if r.registerSubscription != nil {
 		r.registerSubscription.Unsubscribe()
 	}

@@ -6,7 +6,7 @@ RED='\e[31m'
 GREEN='\e[32m'
 NC='\e[39m' # No Color
 TEST_LOG_FILE='test.log'
-
+TEST_FAILED=0
 # function available_port {
 #     read LOWERPORT UPPERPORT < /proc/sys/net/ipv4/ip_local_port_range
 #     cat /proc/sys/net/ipv4/ip_local_port_range
@@ -65,11 +65,19 @@ function cleanup {
     docker kill ${NATS_SERVER_NAME} >& /dev/null
 }
 
+function error_message {
+    echo -e "${RED}${1}: failed${NC}"
+}
+
+function ok_message {
+    echo -e "${GREEN}${1}: passed${NC}"
+}
+
 function test_status {
     if [ $1 -eq 0 ]; then
-        echo -e "${GREEN}${2} passed${NC}"
+        ok_message ${2}
     else
-        echo -e "${RED}${2} failed${NC}"
+        error_message ${2}
         echo Logs:
         echo ------------------------------------------------
         cat ${3}/${TEST_LOG_FILE}
@@ -98,9 +106,19 @@ EOF
 EOF
 }
 
+function check_test1_after_runtime() {
+    local err=0
+    [ -z "$(ps -A | grep ${1})" ] && error_message "pid for registry not found" && err=1
+    [ -z "$(ps -A | grep ${2})" ] && error_message "pid for client not found" && err=1
+    [ $err -eq 1 ] && TEST_FAILED=1
+}
+
 function cleanup_test1() {
-    killall nats-leafnode-sidecar-client-test1
+    kill ${2} &> ${1}/${TEST_LOG_FILE}
+    sleep 0.5
+    kill ${3} &> ${1}/${TEST_LOG_FILE}
     rm -rf ${1}
+    TEST_FAILED=0
 }
 
 function test1 {
@@ -113,26 +131,27 @@ function test1 {
     go build -o ${TMP_DIR}/nats-leafnode-sidecar-client-test1 ../../cmd/client/main.go
 
     ${TMP_DIR}/nats-leafnode-sidecar-registry-test1 --natsconfig ${TMP_DIR}/config/nats.json --creds ${TMP_DIR}/creds --natsuri nats://127.0.0.1:$NATS_PORT &> ${TMP_DIR}/${TEST_LOG_FILE} &
+    registry_pid=$!
     sleep 1
     ${TMP_DIR}/nats-leafnode-sidecar-client-test1 --creds ${TMP_DIR}/nats-credentials --natsuri nats://127.0.0.1:$NATS_PORT &> ${TMP_DIR}/${TEST_LOG_FILE} &
+    client_pid=$!
     sleep 1
-    failed=0
     assert_eq `cat ${TMP_DIR}/config/nats.json | jq -r '.http'` "8222" "http port not equal"
-    [[ $? -eq 0 ]] || failed=1
+    [[ $? -eq 0 ]] || TEST_FAILED=1
     assert_eq `cat ${TMP_DIR}/config/nats.json | jq -r '.accounts.myAccount.users[0].password'` myPassword "password not equal"
-    [[ $? -eq 0 ]] || failed=1
+    [[ $? -eq 0 ]] || TEST_FAILED=1
     assert_eq `cat ${TMP_DIR}/config/nats.json | jq -r '.accounts.myAccount.users[0].user'` myUser "user not equal"
-    [[ $? -eq 0 ]] || failed=1
+    [[ $? -eq 0 ]] || TEST_FAILED=1
     assert_eq `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[0].url'` "tls://connect.ngs.global:7422" "remote url not equal"
-    [[ $? -eq 0 ]] || failed=1
+    [[ $? -eq 0 ]] || TEST_FAILED=1
     assert_eq `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[0].credentials'` "myUser.creds" "remote credentials not equal"
-    [[ $? -eq 0 ]] || failed=1
+    [[ $? -eq 0 ]] || TEST_FAILED=1
     assert_eq `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[0].account'` "myAccount" "remote account not equal"
-    [[ $? -eq 0 ]] || failed=1
+    [[ $? -eq 0 ]] || TEST_FAILED=1
 
-    test_status $failed "Test1" ${TMP_DIR}
-
-    cleanup_test1 ${TMP_DIR}
+    check_test1_after_runtime $client_pid $registry_pid
+    test_status $TEST_FAILED "Test1" ${TMP_DIR}
+    cleanup_test1 ${TMP_DIR} $client_pid $registry_pid
 }
 
 function main {
