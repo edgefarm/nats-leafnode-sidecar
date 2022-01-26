@@ -19,11 +19,11 @@ func TestCredentialsHandling(t *testing.T) {
 			"pid_file": "/var/run/nats.pid",
 			"server_name": "edge"
 		}`,
-		credsFilesPath: "",
+		credsFilesPath: "/creds",
 		configFilePath: "",
 		natsConn:       nil,
 	}
-	err := r.addCredentials("account1", "account1-user", "account1-password", "/account1-user.creds")
+	err := r.addCredentials("account1", "account1-user", "account1-password", "account1")
 	assert.Nil(err)
 	r.Dump()
 	assert.True(Equal(r.Config(), `{
@@ -40,7 +40,7 @@ func TestCredentialsHandling(t *testing.T) {
 			"remotes": [
 				{
 					"url": "tls://connect.ngs.global:7422",
-					"credentials": "account1-user.creds",
+					"credentials": "/creds/account1.creds",
 					"account": "account1"
 				}
 			]
@@ -48,7 +48,7 @@ func TestCredentialsHandling(t *testing.T) {
 		"pid_file": "/var/run/nats.pid",
 		"server_name": "edge"
 	}`))
-	err = r.addCredentials("account2", "account2-user", "account2-password", "/account2-user.creds")
+	err = r.addCredentials("account2", "account2-user", "account2-password", "account2")
 	assert.Nil(err)
 	r.Dump()
 	assert.True(Equal(r.Config(), `{
@@ -71,12 +71,12 @@ func TestCredentialsHandling(t *testing.T) {
 			"remotes": [
 				{
 					"url": "tls://connect.ngs.global:7422",
-					"credentials": "account1-user.creds",
+					"credentials": "/creds/account1.creds",
 					"account": "account1"
 				},
 				{
 					"url": "tls://connect.ngs.global:7422",
-					"credentials": "account2-user.creds",
+					"credentials": "/creds/account2.creds",
 					"account": "account2"
 				}
 			]
@@ -101,7 +101,7 @@ func TestCredentialsHandling(t *testing.T) {
 			"remotes": [
 				{
 					"account": "account2",
-					"credentials": "account2-user.creds",
+					"credentials": "/creds/account2.creds",
 					"url": "tls://connect.ngs.global:7422"
 				}
 			]
@@ -128,7 +128,7 @@ func TestCredentialsHandling(t *testing.T) {
 			"remotes": [
 				{
 					"account": "account2",
-					"credentials": "account2-user.creds",
+					"credentials": "/creds/account2.creds",
 					"url": "tls://connect.ngs.global:7422"
 				}
 			]
@@ -148,7 +148,7 @@ func TestCredentialsHandling(t *testing.T) {
 		"pid_file": "/var/run/nats.pid",
 		"server_name": "edge"
 	}`))
-	err = r.addCredentials("account3", "account3-user", "account3-password", "/account3-user.creds")
+	err = r.addCredentials("account3", "account3-user", "account3-password", "account3")
 	assert.Nil(err)
 	r.Dump()
 	assert.True(Equal(r.Config(), `{
@@ -165,7 +165,7 @@ func TestCredentialsHandling(t *testing.T) {
 			"remotes": [
 				{
 					"url": "tls://connect.ngs.global:7422",
-					"credentials": "account3-user.creds",
+					"credentials": "/creds/account3.creds",
 					"account": "account3"
 				}
 			]
@@ -173,7 +173,7 @@ func TestCredentialsHandling(t *testing.T) {
 		"pid_file": "/var/run/nats.pid",
 		"server_name": "edge"
 	}`))
-	err = r.addCredentials("account1", "account1-user", "account1-password", "/account1-user.creds")
+	err = r.addCredentials("account1", "account1-user", "account1-password", "account1-user")
 	assert.Nil(err)
 	r.Dump()
 	assert.True(Equal(r.Config(), `{
@@ -196,12 +196,12 @@ func TestCredentialsHandling(t *testing.T) {
 			"remotes": [
 				{
 					"url": "tls://connect.ngs.global:7422",
-					"credentials": "account3-user.creds",
+					"credentials": "/creds/account3.creds",
 					"account": "account3"
 				},
 				{
 					"url": "tls://connect.ngs.global:7422",
-					"credentials": "account1-user.creds",
+					"credentials": "/creds/account1.creds",
 					"account": "account1"
 				}
 			]
@@ -210,7 +210,7 @@ func TestCredentialsHandling(t *testing.T) {
 		"server_name": "edge"
 	}`))
 	// update credentials
-	err = r.addCredentials("account1", "account1-user", "account1-newpassword", "/account1-user.creds")
+	err = r.addCredentials("account1", "account1-user", "account1-newpassword", "account1-user")
 	assert.Nil(err)
 	r.Dump()
 	assert.True(Equal(r.Config(), `{
@@ -233,12 +233,12 @@ func TestCredentialsHandling(t *testing.T) {
 			"remotes": [
 				{
 					"url": "tls://connect.ngs.global:7422",
-					"credentials": "account3-user.creds",
+					"credentials": "/creds/account3.creds",
 					"account": "account3"
 				},
 				{
 					"url": "tls://connect.ngs.global:7422",
-					"credentials": "account1-user.creds",
+					"credentials": "/creds/account1.creds",
 					"account": "account1"
 				}
 			]
