@@ -10,18 +10,10 @@ import (
 func TestCredentialsHandling(t *testing.T) {
 	assert := assert.New(t)
 	r := &Registry{
-		configFileContent: `{
-			"accounts": {},
-			"http": 8222,
-			"leafnodes": {
-				"remotes": []
-			},
-			"pid_file": "/var/run/nats.pid",
-			"server_name": "edge"
-		}`,
-		credsFilesPath: "/creds",
-		configFilePath: "",
-		natsConn:       nil,
+		configFileContent: config,
+		credsFilesPath:    "/creds",
+		configFilePath:    "",
+		natsConn:          nil,
 	}
 	err := r.addCredentials("account1", "account1-user", "account1-password")
 	assert.Nil(err)
@@ -32,6 +24,12 @@ func TestCredentialsHandling(t *testing.T) {
 				"users": [{
 					"password": "account1-password",
 					"user": "account1-user"
+				}]
+			},
+			"default": {
+				"users": [{
+					"user": "",
+					"password": ""
 				}]
 			}
 		},
@@ -45,9 +43,9 @@ func TestCredentialsHandling(t *testing.T) {
 				}
 			]
 		},
-		"pid_file": "/var/run/nats.pid",
-		"server_name": "edge"
+		"pid_file": "/var/run/nats/nats.pid"
 	}`))
+
 	err = r.addCredentials("account2", "account2-user", "account2-password")
 	assert.Nil(err)
 	r.Dump()
@@ -63,6 +61,12 @@ func TestCredentialsHandling(t *testing.T) {
 				"users": [{
 					"password": "account2-password",
 					"user": "account2-user"
+				}]
+			},
+			"default": {
+				"users": [{
+					"user": "",
+					"password": ""
 				}]
 			}
 		},
@@ -81,8 +85,7 @@ func TestCredentialsHandling(t *testing.T) {
 				}
 			]
 		},
-		"pid_file": "/var/run/nats.pid",
-		"server_name": "edge"
+		"pid_file": "/var/run/nats/nats.pid"
 	}`))
 	err = r.removeCredentials("account1")
 	assert.Nil(err)
@@ -93,6 +96,12 @@ func TestCredentialsHandling(t *testing.T) {
 				"users": [{
 					"password": "account2-password",
 					"user": "account2-user"
+				}]
+			},
+			"default": {
+				"users": [{
+					"user": "",
+					"password": ""
 				}]
 			}
 		},
@@ -106,8 +115,7 @@ func TestCredentialsHandling(t *testing.T) {
 				}
 			]
 		},
-		"pid_file": "/var/run/nats.pid",
-		"server_name": "edge"
+		"pid_file": "/var/run/nats/nats.pid"
 	}`))
 
 	// try to remove non existent account
@@ -121,6 +129,12 @@ func TestCredentialsHandling(t *testing.T) {
 					"password": "account2-password",
 					"user": "account2-user"
 				}]
+			},
+			"default": {
+				"users": [{
+					"user": "",
+					"password": ""
+				}]
 			}
 		},
 		"http": 8222,
@@ -133,20 +147,24 @@ func TestCredentialsHandling(t *testing.T) {
 				}
 			]
 		},
-		"pid_file": "/var/run/nats.pid",
-		"server_name": "edge"
+		"pid_file": "/var/run/nats/nats.pid"
 	}`))
 	err = r.removeCredentials("account2")
 	assert.Nil(err)
 	r.Dump()
 	assert.True(Equal(r.Config(), `{
-		"accounts": {},
+		"accounts": {
+			"default": {
+				"users": [{
+					"user": "",
+					"password": ""
+				}]
+			}},
 		"http": 8222,
 		"leafnodes": {
 			"remotes": []
 		},
-		"pid_file": "/var/run/nats.pid",
-		"server_name": "edge"
+		"pid_file": "/var/run/nats/nats.pid"
 	}`))
 	err = r.addCredentials("account3", "account3-user", "account3-password")
 	assert.Nil(err)
@@ -157,6 +175,12 @@ func TestCredentialsHandling(t *testing.T) {
 				"users": [{
 					"password": "account3-password",
 					"user": "account3-user"
+				}]
+			},
+			"default": {
+				"users": [{
+					"user": "",
+					"password": ""
 				}]
 			}
 		},
@@ -170,8 +194,7 @@ func TestCredentialsHandling(t *testing.T) {
 				}
 			]
 		},
-		"pid_file": "/var/run/nats.pid",
-		"server_name": "edge"
+		"pid_file": "/var/run/nats/nats.pid"
 	}`))
 	err = r.addCredentials("account1", "account1-user", "account1-password")
 	assert.Nil(err)
@@ -188,6 +211,12 @@ func TestCredentialsHandling(t *testing.T) {
 				"users": [{
 					"password": "account3-password",
 					"user": "account3-user"
+				}]
+			},
+			"default": {
+				"users": [{
+					"user": "",
+					"password": ""
 				}]
 			}
 		},
@@ -206,8 +235,7 @@ func TestCredentialsHandling(t *testing.T) {
 				}
 			]
 		},
-		"pid_file": "/var/run/nats.pid",
-		"server_name": "edge"
+		"pid_file": "/var/run/nats/nats.pid"
 	}`))
 	// update credentials
 	err = r.addCredentials("account1", "account1-user", "account1-newpassword")
@@ -226,6 +254,12 @@ func TestCredentialsHandling(t *testing.T) {
 					"password": "account3-password",
 					"user": "account3-user"
 				}]
+			},
+			"default": {
+				"users": [{
+					"user": "",
+					"password": ""
+				}]
 			}
 		},
 		"http": 8222,
@@ -243,8 +277,7 @@ func TestCredentialsHandling(t *testing.T) {
 				}
 			]
 		},
-		"pid_file": "/var/run/nats.pid",
-		"server_name": "edge"
+		"pid_file": "/var/run/nats/nats.pid"
 	}`))
 }
 

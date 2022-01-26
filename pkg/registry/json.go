@@ -13,13 +13,19 @@ const (
 )
 
 var config = `{
-	"pid_file": "/var/run/nats.pid",
+	"accounts": {
+		"default": {
+			"users": [{
+				"user": "",
+				"password": ""
+				}]
+		}
+	},
 	"http": 8222,
 	"leafnodes": {
 		"remotes": []
 	},
-	"accounts": {
-	}
+	"pid_file": "/var/run/nats/nats.pid"
 }`
 
 func jsonPrettyPrint(in string) string {

@@ -11,7 +11,7 @@ import (
 func SetupConnOptions(opts []nats.Option) []nats.Option {
 	totalWait := 10 * time.Minute
 	reconnectDelay := 2 * time.Second
-
+	opts = append(opts, nats.UserInfo("", ""))
 	opts = append(opts, nats.ReconnectWait(reconnectDelay))
 	opts = append(opts, nats.MaxReconnects(int(totalWait/reconnectDelay)))
 	opts = append(opts, nats.DisconnectErrHandler(func(nc *nats.Conn, err error) {
