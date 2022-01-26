@@ -73,7 +73,7 @@ func (r *Registry) Start() error {
 		if err != nil {
 			log.Println("Error unmarshalling credentials: ", err)
 		}
-		err = r.addCredentials(userCreds.UserAccountName, userCreds.Username, userCreds.Password, userCreds.Creds)
+		err = r.addCredentials(userCreds.UserAccountName, userCreds.Username, userCreds.Password)
 		if err == nil {
 			err = r.natsConn.Publish(m.Reply, []byte(common.OkResponse))
 			if err != nil {

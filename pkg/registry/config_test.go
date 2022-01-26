@@ -28,7 +28,7 @@ func TestUpdateConfigFile(t *testing.T) {
 	assert.Nil(err)
 	r.configFilePath = file.Name()
 	defer os.Remove(r.configFilePath)
-	err = r.addCredentials("account1", "account1-user", "account1-password", "/account1-user.creds")
+	err = r.addCredentials("account1", "account1-user", "account1-password")
 	assert.Nil(err)
 	err = r.updateConfigFile()
 	assert.Nil(err)
@@ -61,7 +61,7 @@ func TestUpdateConfigFileWithSymlink(t *testing.T) {
 	r.configFilePath = symlink
 	defer os.Remove(file.Name())
 	defer os.Remove(symlink)
-	err = r.addCredentials("account1", "account1-user", "account1-password", "/account1-user.creds")
+	err = r.addCredentials("account1", "account1-user", "account1-password")
 	assert.Nil(err)
 	err = r.updateConfigFile()
 	assert.Nil(err)

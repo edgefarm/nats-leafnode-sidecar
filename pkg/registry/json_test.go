@@ -23,7 +23,7 @@ func TestCredentialsHandling(t *testing.T) {
 		configFilePath: "",
 		natsConn:       nil,
 	}
-	err := r.addCredentials("account1", "account1-user", "account1-password", "account1")
+	err := r.addCredentials("account1", "account1-user", "account1-password")
 	assert.Nil(err)
 	r.Dump()
 	assert.True(Equal(r.Config(), `{
@@ -48,7 +48,7 @@ func TestCredentialsHandling(t *testing.T) {
 		"pid_file": "/var/run/nats.pid",
 		"server_name": "edge"
 	}`))
-	err = r.addCredentials("account2", "account2-user", "account2-password", "account2")
+	err = r.addCredentials("account2", "account2-user", "account2-password")
 	assert.Nil(err)
 	r.Dump()
 	assert.True(Equal(r.Config(), `{
@@ -148,7 +148,7 @@ func TestCredentialsHandling(t *testing.T) {
 		"pid_file": "/var/run/nats.pid",
 		"server_name": "edge"
 	}`))
-	err = r.addCredentials("account3", "account3-user", "account3-password", "account3")
+	err = r.addCredentials("account3", "account3-user", "account3-password")
 	assert.Nil(err)
 	r.Dump()
 	assert.True(Equal(r.Config(), `{
@@ -173,7 +173,7 @@ func TestCredentialsHandling(t *testing.T) {
 		"pid_file": "/var/run/nats.pid",
 		"server_name": "edge"
 	}`))
-	err = r.addCredentials("account1", "account1-user", "account1-password", "account1-user")
+	err = r.addCredentials("account1", "account1-user", "account1-password")
 	assert.Nil(err)
 	r.Dump()
 	assert.True(Equal(r.Config(), `{
@@ -210,7 +210,7 @@ func TestCredentialsHandling(t *testing.T) {
 		"server_name": "edge"
 	}`))
 	// update credentials
-	err = r.addCredentials("account1", "account1-user", "account1-newpassword", "account1-user")
+	err = r.addCredentials("account1", "account1-user", "account1-newpassword")
 	assert.Nil(err)
 	r.Dump()
 	assert.True(Equal(r.Config(), `{

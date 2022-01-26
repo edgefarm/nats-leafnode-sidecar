@@ -31,7 +31,7 @@ func jsonPrettyPrint(in string) string {
 	return out.String()
 }
 
-func (r *Registry) addCredentials(userAccountName string, user string, password string, creds string) error {
+func (r *Registry) addCredentials(userAccountName string, user string, password string) error {
 	raw, err := decodeRawJSON(r.configFileContent)
 	if err != nil {
 		return err
