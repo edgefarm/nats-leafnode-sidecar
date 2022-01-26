@@ -52,7 +52,7 @@ func (r *Registry) addCredentials(userAccountName string, user string, password 
 		return err
 	}
 	if !remoteFound {
-		patchJSON := []byte(fmt.Sprintf(`[{"op": "add", "path": "/leafnodes/remotes/-", "value": {"url": "%s", "credentials": "%s.creds", "account": "%s"}}]`, ngsHost, user, userAccountName))
+		patchJSON := []byte(fmt.Sprintf(`[{"op": "add", "path": "/leafnodes/remotes/-", "value": {"url": "%s", "credentials": "%s/%s.creds", "account": "%s"}}]`, ngsHost, r.credsFilesPath, userAccountName, userAccountName))
 		patch, err := jsonpatch.DecodePatch(patchJSON)
 		if err != nil {
 			return err

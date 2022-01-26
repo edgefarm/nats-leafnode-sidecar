@@ -85,7 +85,7 @@ func (r *Registry) Start() error {
 				log.Println(err)
 			}
 		}
-		err = r.writeFile(fmt.Sprintf("%s/%s", r.credsFilesPath, userCreds.UserAccountName), userCreds.Creds)
+		err = r.writeFile(fmt.Sprintf("%s/%s.creds", r.credsFilesPath, userCreds.UserAccountName), userCreds.Creds)
 		if err != nil {
 			log.Println(err)
 		}

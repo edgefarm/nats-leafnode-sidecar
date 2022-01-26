@@ -39,12 +39,12 @@ function cleanup_test1() {
 }
 
 function check_accounts_file {
-    if [ -f "${1}/creds/myAccount" ]; then
-        if [ -z $(cat ${1}/creds/myAccount | grep "myToken") ]; then
+    if [ -f "${1}/creds/myAccount.creds" ]; then
+        if [ -z $(cat ${1}/creds/myAccount.creds | grep "myToken") ]; then
             error_message "token not found in creds file"
             TEST_FAILED=1
         fi
-        if [ -z $(cat ${1}/creds/myAccount | grep "myNkeySeed") ]; then
+        if [ -z $(cat ${1}/creds/myAccount.creds | grep "myNkeySeed") ]; then
             error_message "nkey seed not found in creds file"
             TEST_FAILED=1
         fi
@@ -77,7 +77,7 @@ function test1 {
     [[ $? -eq 0 ]] || TEST_FAILED=1
     assert_eq `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[0].url'` "tls://connect.ngs.global:7422" "remote url not equal"
     [[ $? -eq 0 ]] || TEST_FAILED=1
-    assert_eq `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[0].credentials'` "myUser.creds" "remote credentials not equal"
+    assert_contain `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[0].credentials'` "creds/myAccount.creds" "remote credentials not equal"
     [[ $? -eq 0 ]] || TEST_FAILED=1
     assert_eq `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[0].account'` "myAccount" "remote account not equal"
     [[ $? -eq 0 ]] || TEST_FAILED=1
