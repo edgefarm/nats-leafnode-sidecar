@@ -16,7 +16,7 @@ var config = `{
 	"accounts": {
 		"default": {
 			"users": [{
-				"user": "",
+				"user": "default",
 				"password": ""
 				}]
 		}
