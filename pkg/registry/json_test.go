@@ -28,7 +28,7 @@ func TestCredentialsHandling(t *testing.T) {
 			},
 			"default": {
 				"users": [{
-					"user": "",
+					"user": "default",
 					"password": ""
 				}]
 			}
@@ -65,7 +65,7 @@ func TestCredentialsHandling(t *testing.T) {
 			},
 			"default": {
 				"users": [{
-					"user": "",
+					"user": "default",
 					"password": ""
 				}]
 			}
@@ -100,7 +100,7 @@ func TestCredentialsHandling(t *testing.T) {
 			},
 			"default": {
 				"users": [{
-					"user": "",
+					"user": "default",
 					"password": ""
 				}]
 			}
@@ -132,7 +132,7 @@ func TestCredentialsHandling(t *testing.T) {
 			},
 			"default": {
 				"users": [{
-					"user": "",
+					"user": "default",
 					"password": ""
 				}]
 			}
@@ -156,7 +156,7 @@ func TestCredentialsHandling(t *testing.T) {
 		"accounts": {
 			"default": {
 				"users": [{
-					"user": "",
+					"user": "default",
 					"password": ""
 				}]
 			}},
@@ -179,7 +179,7 @@ func TestCredentialsHandling(t *testing.T) {
 			},
 			"default": {
 				"users": [{
-					"user": "",
+					"user": "default",
 					"password": ""
 				}]
 			}
@@ -215,7 +215,7 @@ func TestCredentialsHandling(t *testing.T) {
 			},
 			"default": {
 				"users": [{
-					"user": "",
+					"user": "default",
 					"password": ""
 				}]
 			}
@@ -257,7 +257,7 @@ func TestCredentialsHandling(t *testing.T) {
 			},
 			"default": {
 				"users": [{
-					"user": "",
+					"user": "default",
 					"password": ""
 				}]
 			}

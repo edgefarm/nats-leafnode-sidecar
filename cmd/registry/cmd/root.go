@@ -42,10 +42,10 @@ var rootCmd = &cobra.Command{
 	Use:   "registry",
 	Short: "Registry takes care of handling nats leafnode connections",
 	Long: `Registry takes care of handling nats leafnode connections. It
-	waits for a new client registration which provides all needed information
-	to handle this connection. A client can also unregister which results in a
-	deletion of this information. Registry modifies the nats configuration file with
-	the new information provided to the nats server.`,
+waits for a new client registration which provides all needed information
+to handle this connection. A client can also unregister which results in a
+deletion of this information. Registry modifies the nats configuration file with
+the new information provided to the nats server.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Println("registry called")
 		r, err := registry.NewRegistry(natsConfig, creds, natsURI)

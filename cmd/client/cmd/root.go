@@ -40,8 +40,8 @@ var rootCmd = &cobra.Command{
 	Use:   "client",
 	Short: "Client subscribes and unsubscribes to the corresponding registry.",
 	Long: `Client subscribes and unsubscribes to the corresponding registry.
-	Client is supposed to run as a sidecar container and is responsible for
-	telling the registry about new leafnode connections.`,
+This is supposed to run as a sidecar container and is responsible for
+telling the registry about new leafnode connections.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Println("client called")
 		registryClient, err := client.NewClient(creds, natsURI)
