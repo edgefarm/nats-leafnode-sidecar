@@ -10,7 +10,7 @@ import (
 func TestCredentialsHandling(t *testing.T) {
 	assert := assert.New(t)
 	r := &Registry{
-		configFileContent: config,
+		configFileContent: defaultConfig,
 		credsFilesPath:    "/creds",
 		configFilePath:    "",
 		natsConn:          nil,

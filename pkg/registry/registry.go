@@ -53,9 +53,20 @@ func NewRegistry(natsConfig string, creds string, natsURI string) (*Registry, er
 		}
 	}()
 
+	readConfig, err := readFile(natsConfig)
+	if err != nil {
+		log.Printf("Error reading config file: %s", err)
+	}
+	// If the config file doesn't exist, create it. This is really not the standard case.
+	// Just to make sure that a valid config file is always there.
+	if readConfig == "" {
+		log.Println("Using default config file, however a config file should always exist. This might be an error. Please have a look.")
+		readConfig = defaultConfig
+	}
+
 	nc := <-ncChan
 	r := &Registry{
-		configFileContent: string(config),
+		configFileContent: readConfig,
 		credsFilesPath:    creds,
 		configFilePath:    natsConfig,
 		natsConn:          nc,

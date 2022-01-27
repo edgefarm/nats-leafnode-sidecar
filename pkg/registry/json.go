@@ -9,10 +9,8 @@ import (
 )
 
 const (
-	ngsHost = "tls://connect.ngs.global:7422"
-)
-
-var config = `{
+	ngsHost       = "tls://connect.ngs.global:7422"
+	defaultConfig = `{
 	"accounts": {
 		"default": {
 			"users": [{
@@ -27,6 +25,7 @@ var config = `{
 	},
 	"pid_file": "/var/run/nats/nats.pid"
 }`
+)
 
 func jsonPrettyPrint(in string) string {
 	var out bytes.Buffer
