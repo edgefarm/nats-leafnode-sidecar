@@ -45,8 +45,6 @@ jobs:
           version: v0.6.0
       - name: Available platforms
         run: echo ${{ steps.buildx.outputs.platforms }}
-      - name: Add SHORT_SHA env property with commit short sha
-        run: echo "SHORT_SHA=`echo ${{ github.event.pull_request.head.sha }} | cut -c1-8`" >> $GITHUB_ENV
       - name: Build
         run: |
           docker buildx build \
@@ -54,7 +52,7 @@ jobs:
                       --push \
                       --platform ${ARCHITECTURES} \
                       --tag ${DOCKER_REPOSITORY}/$NAME-client:latest \
-                      --tag ${DOCKER_REPOSITORY}/$NAME-client:${SHORT_SHA} .
+                      --tag ${DOCKER_REPOSITORY}/$NAME-client:${GITHUB_SHA::8} .
   build-registry-docker-image:
     runs-on: ubuntu-latest
     steps:
@@ -75,8 +73,6 @@ jobs:
           version: v0.6.0
       - name: Available platforms
         run: echo ${{ steps.buildx.outputs.platforms }}
-      - name: Add SHORT_SHA env property with commit short sha
-        run: echo "SHORT_SHA=`echo ${{ github.event.pull_request.head.sha }} | cut -c1-8`" >> $GITHUB_ENV
       - name: Build
         run: |
           docker buildx build \
@@ -84,4 +80,4 @@ jobs:
                       --push \
                       --platform ${ARCHITECTURES} \
                       --tag ${DOCKER_REPOSITORY}/$NAME-registry:latest \
-                      --tag ${DOCKER_REPOSITORY}/$NAME-registry:${SHORT_SHA} .
+                      --tag ${DOCKER_REPOSITORY}/$NAME-registry:${GITHUB_SHA::8} .

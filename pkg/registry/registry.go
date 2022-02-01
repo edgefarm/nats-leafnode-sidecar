@@ -71,6 +71,10 @@ func NewRegistry(natsConfig string, creds string, natsURI string) (*Registry, er
 		configFilePath:    natsConfig,
 		natsConn:          nc,
 	}
+	err = r.updateConfigFile()
+	if err != nil {
+		return nil, err
+	}
 	return r, nil
 }
 
