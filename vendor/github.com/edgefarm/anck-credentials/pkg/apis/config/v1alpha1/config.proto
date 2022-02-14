@@ -28,7 +28,10 @@ message Credentials {
   string creds = 4;
 }
 
-message DesiredStateResponse { repeated Credentials creds = 1; }
+message DesiredStateResponse {
+  repeated Credentials creds = 1;
+  repeated string deletedUserAccountNames = 2;
+}
 
 message DeleteAccountRequest { string accountName = 1; }
 

@@ -10,7 +10,7 @@ import (
 	"github.com/edgefarm/nats-leafnode-sidecar/pkg/common"
 	"github.com/nats-io/nats.go"
 
-	api "github.com/edgefarm/edgefarm.network/pkg/apis/config/v1alpha1"
+	api "github.com/edgefarm/anck-credentials/pkg/apis/config/v1alpha1"
 )
 
 const (
