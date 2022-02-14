@@ -23,14 +23,14 @@ import (
 	"path/filepath"
 	"time"
 
-	api "github.com/edgefarm/edgefarm.network/pkg/apis/config/v1alpha1"
+	api "github.com/edgefarm/anck-credentials/pkg/apis/config/v1alpha1"
 	common "github.com/edgefarm/nats-leafnode-sidecar/pkg/common"
 	files "github.com/edgefarm/nats-leafnode-sidecar/pkg/files"
 	nats "github.com/nats-io/nats.go"
 )
 
 const (
-	edgefarmNetworkAccountNameSecret = "edgefarm.network-natsUserData"
+	edgefarmNetworkAccountNameSecret = "anck-credentials-natsUserData"
 	connectTimeoutSeconds            = 10
 )
 

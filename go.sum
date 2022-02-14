@@ -87,8 +87,8 @@ github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSs
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815/go.mod h1:WwZ+bS3ebgob9U8Nd0kOddGdZWjyMGR8Wziv+TBNwSE=
-github.com/edgefarm/edgefarm.network v0.2.1-dev h1:u7GOaQO0C3WqRjEmgljZgby3a0ApqeVaLrk2h4nF5Ew=
-github.com/edgefarm/edgefarm.network v0.2.1-dev/go.mod h1:uiBe3wArjdZfvMBsWxl/oNiKt4uvG/suXppqGZYNqck=
+github.com/edgefarm/anck-credentials v0.3.1 h1:Jqr/1bA7ZO81QiYKM/wzA7KZ9rIvDriDZxAp3n5eKGA=
+github.com/edgefarm/anck-credentials v0.3.1/go.mod h1:Tb7s3h9ME+jg/9aRY/+f2ewBuXy2zUPtCGfm646WEpU=
 github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=
 github.com/emicklei/go-restful v0.0.0-20170410110728-ff4f55a20633/go.mod h1:otzb+WCGbkyDHkqmQmT5YD2WR4BBwUdeQoFo8l/7tVs=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
