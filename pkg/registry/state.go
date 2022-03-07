@@ -31,9 +31,9 @@ func NewState(path string) *State {
 		},
 	}
 
-	if err := state.ReadState(); err != nil {
+	if err := state.Read(); err != nil {
 		fmt.Println("State file not found, creating empty state")
-		err = state.createEmptyState()
+		err = state.createEmpty()
 		if err != nil {
 			panic(err)
 		}
@@ -41,8 +41,8 @@ func NewState(path string) *State {
 	return state
 }
 
-// SaveState saves the state to the file
-func (s *State) SaveState() error {
+// Save saves the state to the file
+func (s *State) Save() error {
 	str, err := json.Marshal(s.Current)
 	if err != nil {
 		return err
@@ -59,8 +59,8 @@ func (s *State) SaveState() error {
 	return nil
 }
 
-// ReadState reads the state from the file
-func (s *State) ReadState() error {
+// Read reads the state from the file
+func (s *State) Read() error {
 	data, err := ioutil.ReadFile(s.Path)
 	if err != nil {
 		fmt.Print(err)
@@ -72,12 +72,55 @@ func (s *State) ReadState() error {
 	return nil
 }
 
-// UpdateState updates the state
-func (s *State) UpdateState(network string, increment int) error {
+const (
+	// RegisterParticipant is the increment for a new participant
+	RegisterParticipant int = 1
+	// UnregisterParticipant is the decrement for a removed participant
+	UnregisterParticipant int = -1
+)
+
+// Update updates the state. Takes either RegisterParticipant or UnregisterParticipant
+func (s *State) Update(network string, increment int) error {
+	if _, ok := s.Current.NetworkUsage[network]; !ok {
+		return fmt.Errorf("network %s not found", network)
+	}
 	s.Current.NetworkUsage[network] += increment
-	return nil
+	return s.Save()
 }
 
-func (s *State) createEmptyState() error {
-	return s.SaveState()
+// Usage returns the usage count of the network
+func (s *State) Usage(network string) (int, error) {
+	if _, ok := s.Current.NetworkUsage[network]; !ok {
+		return 0, fmt.Errorf("network %s not found", network)
+	}
+	return s.Current.NetworkUsage[network], nil
+}
+
+func (s *State) createEmpty() error {
+	return s.Save()
+}
+
+// CanDelete checks whether the network can be deleted
+func (s *State) CanDelete(network string) (bool, error) {
+	usage, err := s.Usage(network)
+	if err != nil {
+		return false, err
+	}
+	return usage <= 0, nil
+}
+
+// Delete deletes the network from the state
+func (s *State) Delete(network string) error {
+	if _, ok := s.Current.NetworkUsage[network]; !ok {
+		return fmt.Errorf("network %s not found", network)
+	}
+	usage, err := s.Usage(network)
+	if err != nil {
+		return err
+	}
+	if usage > 0 {
+		return fmt.Errorf("network %s is still in use", network)
+	}
+	delete(s.Current.NetworkUsage, network)
+	return s.Save()
 }
