@@ -25,6 +25,7 @@ type Registry struct {
 	natsConn               *nats.Conn
 	registerSubscription   *nats.Subscription
 	unregisterSubscription *nats.Subscription
+	state                  State
 }
 
 // NewRegistry creates a new registry
@@ -88,7 +89,7 @@ func (r *Registry) Start() error {
 		if err != nil {
 			log.Println("Error unmarshalling credentials: ", err)
 		}
-		err = r.addCredentials(userCreds.UserAccountName, userCreds.Username, userCreds.Password)
+		err = r.addCredentials(userCreds.UserAccountName, userCreds.Username)
 		if err == nil {
 			err = r.natsConn.Publish(m.Reply, []byte(common.OkResponse))
 			if err != nil {

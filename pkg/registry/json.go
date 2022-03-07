@@ -11,14 +11,6 @@ import (
 const (
 	ngsHost       = "tls://connect.ngs.global:7422"
 	defaultConfig = `{
-	"accounts": {
-		"default": {
-			"users": [{
-				"user": "default",
-				"password": ""
-				}]
-		}
-	},
 	"http": 8222,
 	"leafnodes": {
 		"remotes": []
@@ -36,7 +28,7 @@ func jsonPrettyPrint(in string) string {
 	return out.String()
 }
 
-func (r *Registry) addCredentials(userAccountName string, user string, password string) error {
+func (r *Registry) addCredentials(network string, creds string) error {
 	raw, err := decodeRawJSON(r.configFileContent)
 	if err != nil {
 		return err
@@ -46,7 +38,7 @@ func (r *Registry) addCredentials(userAccountName string, user string, password 
 	remoteFound := false
 	for _, r := range raw["leafnodes"].(map[string]interface{})["remotes"].([]interface{}) {
 		remote := r.(map[string]interface{})
-		if ok := remote["account"] == userAccountName; ok {
+		if ok := remote["account"] == network; ok {
 			remoteFound = true
 			break
 		}
@@ -57,7 +49,7 @@ func (r *Registry) addCredentials(userAccountName string, user string, password 
 		return err
 	}
 	if !remoteFound {
-		patchJSON := []byte(fmt.Sprintf(`[{"op": "add", "path": "/leafnodes/remotes/-", "value": {"url": "%s", "credentials": "%s/%s.creds", "account": "%s"}}]`, ngsHost, r.credsFilesPath, userAccountName, userAccountName))
+		patchJSON := []byte(fmt.Sprintf(`[{"op": "add", "path": "/leafnodes/remotes/-", "value": {"url": "%s", "credentials": "%s/%s.creds"}}]`, ngsHost, r.credsFilesPath, network))
 		patch, err := jsonpatch.DecodePatch(patchJSON)
 		if err != nil {
 			return err
@@ -67,32 +59,6 @@ func (r *Registry) addCredentials(userAccountName string, user string, password 
 		if err != nil {
 			return err
 		}
-	}
-
-	accounts := raw["accounts"].(map[string]interface{})
-	accounts[userAccountName] = map[string]interface{}{
-		"users": []map[string]interface{}{
-			{
-				"user":     user,
-				"password": password,
-			},
-		},
-	}
-
-	accountsString, err := json.Marshal(accounts)
-	if err != nil {
-		return err
-	}
-
-	patchJSON := []byte(fmt.Sprintf(`[{"op": "replace", "path": "/accounts", "value": %s}]`, accountsString))
-	patch, err := jsonpatch.DecodePatch(patchJSON)
-	if err != nil {
-		return err
-	}
-
-	modified, err = patch.Apply(modified)
-	if err != nil {
-		return err
 	}
 
 	r.configFileContent = string(modified)

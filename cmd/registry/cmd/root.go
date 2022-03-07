@@ -35,6 +35,7 @@ var (
 	natsURI    string
 	creds      string
 	natsConfig string
+	state      string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -98,10 +99,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&natsURI, "natsuri", "nats://nats.nats:4222", "natsURI to connect to")
 	rootCmd.PersistentFlags().StringVar(&natsConfig, "natsconfig", "/config/nats.json", "path to nats config file")
 	rootCmd.PersistentFlags().StringVar(&creds, "creds", "/creds", "path where to find the nats credentials")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	rootCmd.PersistentFlags().StringVar(&state, "state", "/state/state.json", "path where to find the file reflecting the current state")
 }
 
 // initConfig reads in config file and ENV variables if set.
