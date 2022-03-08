@@ -49,7 +49,7 @@ deletion of this information. Registry modifies the nats configuration file with
 the new information provided to the nats server.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Println("registry called")
-		r, err := registry.NewRegistry(natsConfig, creds, natsURI)
+		r, err := registry.NewRegistry(natsConfig, creds, natsURI, state)
 		if err != nil {
 			log.Fatal(err)
 		}

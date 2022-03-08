@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"time"
 
+	api "github.com/edgefarm/anck-credentials/pkg/apis/config/v1alpha1"
 	"github.com/edgefarm/nats-leafnode-sidecar/pkg/common"
 )
 
@@ -47,8 +48,8 @@ func Unregister() *RegistryOptions {
 }
 
 // Registry is used to register or unregister an application to the nats server
-func (c *Client) Registry(option *RegistryOptions) error {
-	j, err := json.Marshal(c.creds)
+func (c *Client) Registry(option *RegistryOptions, creds *api.Credentials) error {
+	j, err := json.Marshal(creds)
 	if err != nil {
 		return err
 	}

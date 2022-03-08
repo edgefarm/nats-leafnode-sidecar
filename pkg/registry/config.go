@@ -1,6 +1,7 @@
 package registry
 
 import (
+	"io/ioutil"
 	"os"
 	"path/filepath"
 )
@@ -51,15 +52,9 @@ func (r *Registry) removeFile(path string) error {
 }
 
 func readFile(path string) (string, error) {
-	file, err := os.Open(path)
+	content, err := ioutil.ReadFile(path)
 	if err != nil {
 		return "", err
 	}
-	defer file.Close()
-	content := ""
-	_, err = file.Read([]byte(content))
-	if err != nil {
-		return "", err
-	}
-	return content, nil
+	return string(content), nil
 }

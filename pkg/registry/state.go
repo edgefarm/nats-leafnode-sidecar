@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+
+	"github.com/edgefarm/nats-leafnode-sidecar/pkg/unique"
 )
 
 // State is a struct that holds the state of the registry
@@ -19,7 +21,7 @@ type State struct {
 type current struct {
 	// NetworkUsage counts the number of components that are using the network.
 	// This is needed for a proper clean up.
-	NetworkUsage map[string]int `json:"network_usage"`
+	NetworkUsage map[string][]string `json:"network_usage"`
 }
 
 // NewState creates a new state
@@ -27,7 +29,7 @@ func NewState(path string) *State {
 	state := &State{
 		Path: path,
 		Current: current{
-			NetworkUsage: map[string]int{},
+			NetworkUsage: make(map[string][]string),
 		},
 	}
 
@@ -72,19 +74,13 @@ func (s *State) Read() error {
 	return nil
 }
 
-const (
-	// RegisterParticipant is the increment for a new participant
-	RegisterParticipant int = 1
-	// UnregisterParticipant is the decrement for a removed participant
-	UnregisterParticipant int = -1
-)
-
-// Update updates the state. Takes either RegisterParticipant or UnregisterParticipant
-func (s *State) Update(network string, increment int) error {
+// Update updates the state.
+func (s *State) Update(network string, component string) error {
 	if _, ok := s.Current.NetworkUsage[network]; !ok {
 		return fmt.Errorf("network %s not found", network)
 	}
-	s.Current.NetworkUsage[network] += increment
+	// ignore multiple registrations for components
+	s.Current.NetworkUsage[network] = unique.Slice(append(s.Current.NetworkUsage[network], component))
 	return s.Save()
 }
 
@@ -93,7 +89,7 @@ func (s *State) Usage(network string) (int, error) {
 	if _, ok := s.Current.NetworkUsage[network]; !ok {
 		return 0, fmt.Errorf("network %s not found", network)
 	}
-	return s.Current.NetworkUsage[network], nil
+	return len(s.Current.NetworkUsage[network]), nil
 }
 
 func (s *State) createEmpty() error {

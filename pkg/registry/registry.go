@@ -7,14 +7,14 @@ import (
 	"os"
 	"time"
 
+	api "github.com/edgefarm/anck-credentials/pkg/apis/config/v1alpha1"
 	"github.com/edgefarm/nats-leafnode-sidecar/pkg/common"
 	"github.com/nats-io/nats.go"
-
-	api "github.com/edgefarm/anck-credentials/pkg/apis/config/v1alpha1"
 )
 
 const (
 	connectTimeoutSeconds = 10
+	ngsHost               = "tls://connect.ngs.global:7422"
 )
 
 // Registry is a registry for nats-leafnodes
@@ -25,11 +25,12 @@ type Registry struct {
 	natsConn               *nats.Conn
 	registerSubscription   *nats.Subscription
 	unregisterSubscription *nats.Subscription
-	state                  State
+	state                  *State
+	config                 *NatsConfig
 }
 
 // NewRegistry creates a new registry
-func NewRegistry(natsConfig string, creds string, natsURI string) (*Registry, error) {
+func NewRegistry(natsConfig string, creds string, natsURI string, state string) (*Registry, error) {
 	opts := []nats.Option{nats.Timeout(time.Duration(1) * time.Second)}
 	opts = common.SetupConnOptions(opts)
 	ncChan := make(chan *nats.Conn)
@@ -62,7 +63,7 @@ func NewRegistry(natsConfig string, creds string, natsURI string) (*Registry, er
 	// Just to make sure that a valid config file is always there.
 	if readConfig == "" {
 		log.Println("Using default config file, however a config file should always exist. This might be an error. Please have a look.")
-		readConfig = defaultConfig
+		// readConfig = defaultConfig
 	}
 
 	nc := <-ncChan
@@ -71,6 +72,8 @@ func NewRegistry(natsConfig string, creds string, natsURI string) (*Registry, er
 		credsFilesPath:    creds,
 		configFilePath:    natsConfig,
 		natsConn:          nc,
+		state:             NewState(state),
+		config:            NewJson(natsConfig),
 	}
 	err = r.updateConfigFile()
 	if err != nil {
@@ -84,12 +87,12 @@ func (r *Registry) Start() error {
 	var err error
 	r.registerSubscription, err = r.natsConn.Subscribe(common.RegisterSubject, func(m *nats.Msg) {
 		log.Println("Received register request")
-		userCreds := &api.Credentials{}
-		err := json.Unmarshal(m.Data, userCreds)
+		creds := &api.Credentials{}
+		err := json.Unmarshal(m.Data, creds)
 		if err != nil {
 			log.Println("Error unmarshalling credentials: ", err)
 		}
-		err = r.addCredentials(userCreds.UserAccountName, userCreds.Username)
+		err = r.addCredentials(creds.NetworkParticipant)
 		if err == nil {
 			err = r.natsConn.Publish(m.Reply, []byte(common.OkResponse))
 			if err != nil {
@@ -101,7 +104,7 @@ func (r *Registry) Start() error {
 				log.Println(err)
 			}
 		}
-		err = r.writeFile(fmt.Sprintf("%s/%s.creds", r.credsFilesPath, userCreds.UserAccountName), userCreds.Creds)
+		err = r.writeFile(r.credsFile(creds.NetworkParticipant), creds.Creds)
 		if err != nil {
 			log.Println(err)
 		}
@@ -116,12 +119,12 @@ func (r *Registry) Start() error {
 
 	r.unregisterSubscription, err = r.natsConn.Subscribe(common.UnregisterSubject, func(m *nats.Msg) {
 		log.Println("Received unregister request")
-		userCreds := &api.Credentials{}
-		err := json.Unmarshal(m.Data, userCreds)
+		creds := &api.Credentials{}
+		err := json.Unmarshal(m.Data, creds)
 		if err != nil {
 			log.Println("Error unmarshalling credentials: ", err)
 		}
-		err = r.removeCredentials(userCreds.UserAccountName)
+		deleteCredsfile, err := r.removeCredentials(creds.NetworkParticipant)
 		if err == nil {
 			err = r.natsConn.Publish(m.Reply, []byte(common.OkResponse))
 			if err != nil {
@@ -133,13 +136,16 @@ func (r *Registry) Start() error {
 				log.Println(err)
 			}
 		}
-		err = r.updateConfigFile()
-		if err != nil {
-			log.Println(err)
-		}
-		err = r.removeFile(fmt.Sprintf("%s/%s", r.credsFilesPath, userCreds.UserAccountName))
-		if err != nil {
-			log.Println(err)
+
+		if deleteCredsfile {
+			err = r.removeFile(r.credsFile(creds.NetworkParticipant))
+			if err != nil {
+				log.Println(err)
+			}
+			err = r.updateConfigFile()
+			if err != nil {
+				log.Println(err)
+			}
 		}
 	})
 	if err != nil {
@@ -159,4 +165,55 @@ func (r *Registry) Shutdown() {
 	}
 	r.natsConn.Close()
 	os.Exit(0)
+}
+
+func (r *Registry) addCredentials(network string) error {
+	found := false
+	for _, remote := range r.config.Leafnodes.Remotes {
+		if remote.Credentials == network {
+			found = true
+			err := r.state.Update(network, RegisterParticipant)
+			if err != nil {
+				return err
+			}
+			break
+		}
+	}
+	if !found {
+		r.config.Leafnodes.Remotes = append(r.config.Leafnodes.Remotes, Remote{
+			Url:         ngsHost,
+			Credentials: r.credsFile(network),
+		})
+	}
+	r.configFileContent = jsonPrettyPrint(r.config.Dump())
+	return nil
+}
+
+func (r *Registry) removeCredentials(network string) (bool, error) {
+	usage, err := r.state.Usage(network)
+	if err != nil {
+		return false, err
+	}
+	if usage > 0 {
+		fmt.Printf("Removing participant cound from network '%s'\n", network)
+		err = r.state.Update(network, UnregisterParticipant)
+		if err != nil {
+			return false, err
+		}
+		usage--
+	}
+	if usage <= 0 {
+		for i, remote := range r.config.Leafnodes.Remotes {
+			if remote.Credentials == r.credsFile(network) {
+				r.config.Leafnodes.Remotes = append(r.config.Leafnodes.Remotes[:i], r.config.Leafnodes.Remotes[i+1:]...)
+				break
+			}
+		}
+	}
+	r.configFileContent = jsonPrettyPrint(r.config.Dump())
+	return usage <= 0, nil
+}
+
+func (r *Registry) credsFile(network string) string {
+	return fmt.Sprintf("%s/%s.creds", r.credsFilesPath, network)
 }
