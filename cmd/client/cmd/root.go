@@ -41,7 +41,8 @@ var rootCmd = &cobra.Command{
 	Short: "Client subscribes and unsubscribes to the corresponding registry.",
 	Long: `Client subscribes and unsubscribes to the corresponding registry.
 This is supposed to run as a sidecar container and is responsible for
-telling the registry about new leafnode connections.`,
+telling the registry about new edgefarm.network credentials for the
+component attached to.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Println("client called")
 		registryClient, err := client.NewClient(creds, natsURI)
@@ -49,7 +50,7 @@ telling the registry about new leafnode connections.`,
 			log.Println(err)
 			os.Exit(1)
 		}
-		err = registryClient.Connect()
+		err = registryClient.Start()
 		if err != nil {
 			log.Println(err)
 			os.Exit(1)

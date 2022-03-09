@@ -74,14 +74,37 @@ func (s *State) Read() error {
 	return nil
 }
 
+// UpdateAction is an enum for the update action
+type UpdateAction string
+
+const (
+	// Add is the action for adding a component to the state
+	Add UpdateAction = "add"
+	// Remove is the action for removing a component from the state
+	Remove UpdateAction = "remove"
+)
+
 // Update updates the state.
-func (s *State) Update(network string, component string) error {
+func (s *State) Update(network string, component string, action UpdateAction) error {
 	if _, ok := s.Current.NetworkUsage[network]; !ok {
 		return fmt.Errorf("network %s not found", network)
 	}
-	// ignore multiple registrations for components
-	s.Current.NetworkUsage[network] = unique.Slice(append(s.Current.NetworkUsage[network], component))
+	if action == Add {
+		// ignore multiple registrations for components
+		s.Current.NetworkUsage[network] = unique.Slice(append(s.Current.NetworkUsage[network], component))
+	} else {
+		s.Current.NetworkUsage[network] = unique.Slice(remove(s.Current.NetworkUsage[network], component))
+	}
 	return s.Save()
+}
+
+func remove(slice []string, s string) []string {
+	for i, v := range slice {
+		if v == s {
+			return append(slice[:i], slice[i+1:]...)
+		}
+	}
+	return slice
 }
 
 // Usage returns the usage count of the network

@@ -48,8 +48,10 @@ type Client struct {
 	watcher *fsnotify.Watcher
 	// Reregister
 	reregister chan interface{}
-	// finish
+	// finish is a channel to signal the client to shutdown.
 	finish chan interface{}
+	// finishWatch is a channel to signal the watch loop to finish
+	finishWatch chan interface{}
 }
 
 // NewClient creates a new client for the registry service.
@@ -94,7 +96,13 @@ func NewClient(credentialsMountDirectory string, natsURI string) (*Client, error
 	}, nil
 }
 
-func (c *Client) Action(option *RegistryOptions) error {
+// Start starts the client.
+func (c *Client) Start() error {
+	go c.loop()
+	return nil
+}
+
+func (c *Client) action(option *RegistryOptions) error {
 	f, err := files.GetSymlinks(c.path)
 	if err != nil {
 		return err
@@ -118,7 +126,7 @@ func (c *Client) Action(option *RegistryOptions) error {
 	return nil
 }
 
-func (c *Client) Watch(path string, callback func(string)) error {
+func (c *Client) installWatch(path string, callback func() error) error {
 	go func() {
 		for {
 			select {
@@ -129,13 +137,30 @@ func (c *Client) Watch(path string, callback func(string)) error {
 				log.Println("event:", event)
 				if event.Op&fsnotify.Write == fsnotify.Write {
 					log.Println("modified file:", event.Name)
-					callback(event.Name)
 				}
+				if event.Op&fsnotify.Remove == fsnotify.Remove {
+					log.Println("removed file:", event.Name)
+				}
+				if event.Op&fsnotify.Create == fsnotify.Create {
+					log.Println("created file:", event.Name)
+				}
+				if event.Op&fsnotify.Rename == fsnotify.Rename {
+					log.Println("created file:", event.Name)
+				}
+				err := callback()
+				if err != nil {
+					log.Println(err)
+				}
+
 			case err, ok := <-c.watcher.Errors:
 				if !ok {
 					return
 				}
 				log.Println("error:", err)
+			case <-c.finishWatch:
+				fmt.Println("Stopping watcher")
+				c.watcher.Close()
+				return
 			}
 		}
 	}()
@@ -147,39 +172,44 @@ func (c *Client) Watch(path string, callback func(string)) error {
 	return nil
 }
 
-// Loop runs the client in a loop.
-func (c *Client) Loop() {
-	err := c.Action(Register())
+func (c *Client) watchCallback() error {
+	return c.action(Register())
+}
+
+// loop runs the client in a loop.
+func (c *Client) loop() {
+	// first time register all the credentials
+	err := c.action(Register())
 	if err != nil {
 		log.Println(err)
 	}
 
-	go Watch(c.path, c.reregister)
+	// the watch will re-register the credentials on changes
+	err = c.installWatch(c.path, c.watchCallback)
+	if err != nil {
+		log.Println(err)
+	}
+
 	for {
-		log.Println("Looping")
-		time.Sleep(time.Second * 5)
+		select {
+		case <-c.finish:
+			fmt.Println("Stopping loop")
+			return
+		default:
+			time.Sleep(time.Second * 1)
+		}
 	}
 }
-
-// // Connect registeres the application and connects to the nats server.
-// func (c *Client) Connect() error {
-// 	log.Printf("Credentials found for userAccountName %s\n", c.creds.Creds)
-// 	err := c.Registry(Register())
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	return nil
-// }
 
 // Shutdown unregisteres the application and shuts down the nats connection.
 func (c *Client) Shutdown() error {
 	log.Println("Shutting down client")
-	err := c.Registry(Unregister())
+	err := c.action(Unregister())
 	if err != nil {
 		return err
 	}
+	c.finishWatch <- true
+	c.finish <- true
 	c.nc.Close()
-	c.watcher.Close()
 	return nil
 }

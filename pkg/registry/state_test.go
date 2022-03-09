@@ -19,9 +19,9 @@ func TestStateNewState(t *testing.T) {
 	defer os.Remove(file.Name())
 
 	state := NewState(file.Name())
-	state.Current.NetworkUsage = map[string]int{
-		"foo": 1,
-		"bar": 2,
+	state.Current.NetworkUsage = map[string][]string{
+		"foo": {"a"},
+		"bar": {"a", "b"},
 	}
 
 	err = state.Save()
@@ -31,9 +31,9 @@ func TestStateNewState(t *testing.T) {
 	err = newState.Read()
 	assert.Nil(err)
 
-	assert.Equal(newState.Current.NetworkUsage, map[string]int{
-		"foo": 1,
-		"bar": 2,
+	assert.Equal(newState.Current.NetworkUsage, map[string][]string{
+		"foo": {"a"},
+		"bar": {"a", "b"},
 	})
 }
 
@@ -67,15 +67,22 @@ func TestStateStateIncrement(t *testing.T) {
 	defer os.Remove(file.Name())
 
 	state := NewState(file.Name())
-	state.Current.NetworkUsage = map[string]int{
-		"foo": 1,
-		"bar": 2,
+	state.Current.NetworkUsage = map[string][]string{
+		"foo": {"a"},
+		"bar": {"a", "b"},
 	}
 
 	// add participant to foo
-	err = state.Update("foo", RegisterParticipant)
+	err = state.Update("foo", "z", Add)
 	assert.Nil(err)
 	foo, err := state.Usage("foo")
+	assert.Nil(err)
+	assert.Equal(foo, 2)
+
+	// again add the same participant to foo. Should be ignored.
+	err = state.Update("foo", "z", Add)
+	assert.Nil(err)
+	foo, err = state.Usage("foo")
 	assert.Nil(err)
 	assert.Equal(foo, 2)
 
@@ -85,7 +92,7 @@ func TestStateStateIncrement(t *testing.T) {
 	assert.Equal(foobar, 0)
 
 	// remove participant from foo
-	err = state.Update("foo", UnregisterParticipant)
+	err = state.Update("foo", "z", Remove)
 	assert.Nil(err)
 	foo, err = state.Usage("foo")
 	assert.Nil(err)
@@ -100,8 +107,8 @@ func TestStateStateIncrement(t *testing.T) {
 	err = state.Delete("foo")
 	assert.NotNil(err)
 
-	// remove last participant from foo
-	err = state.Update("foo", UnregisterParticipant)
+	// remove participant from foo
+	err = state.Update("foo", "a", Remove)
 	assert.Nil(err)
 
 	// foo now can be deleted
@@ -114,7 +121,7 @@ func TestStateStateIncrement(t *testing.T) {
 	assert.Nil(err)
 
 	// foo is not in the state anymore
-	err = state.Update("foo", UnregisterParticipant)
+	err = state.Update("foo", "y", Remove)
 	assert.NotNil(err)
 	_, err = state.Usage("foo")
 	assert.NotNil(err)

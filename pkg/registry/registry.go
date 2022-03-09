@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	api "github.com/edgefarm/anck-credentials/pkg/apis/config/v1alpha1"
@@ -82,6 +83,14 @@ func NewRegistry(natsConfig string, creds string, natsURI string, state string) 
 	return r, nil
 }
 
+func splitNetworkParticipant(str string) (string, string, error) {
+	parts := strings.Split(str, ".")
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("Invalid format for network and component")
+	}
+	return parts[0], parts[1], nil
+}
+
 // Start starts the registry and handles all incoming requests for registering and unregistering
 func (r *Registry) Start() error {
 	var err error
@@ -92,7 +101,12 @@ func (r *Registry) Start() error {
 		if err != nil {
 			log.Println("Error unmarshalling credentials: ", err)
 		}
-		err = r.addCredentials(creds.NetworkParticipant)
+		network, component, err := splitNetworkParticipant(creds.NetworkParticipant)
+		if err != nil {
+			log.Println("Error splitting network and component: ", err)
+		}
+
+		err = r.addCredentials(network, component)
 		if err == nil {
 			err = r.natsConn.Publish(m.Reply, []byte(common.OkResponse))
 			if err != nil {
@@ -124,7 +138,11 @@ func (r *Registry) Start() error {
 		if err != nil {
 			log.Println("Error unmarshalling credentials: ", err)
 		}
-		deleteCredsfile, err := r.removeCredentials(creds.NetworkParticipant)
+		network, component, err := splitNetworkParticipant(creds.NetworkParticipant)
+		if err != nil {
+			log.Println("Error splitting network and component: ", err)
+		}
+		deleteCredsfile, err := r.removeCredentials(network, component)
 		if err == nil {
 			err = r.natsConn.Publish(m.Reply, []byte(common.OkResponse))
 			if err != nil {
@@ -167,12 +185,12 @@ func (r *Registry) Shutdown() {
 	os.Exit(0)
 }
 
-func (r *Registry) addCredentials(network string) error {
+func (r *Registry) addCredentials(network string, component string) error {
 	found := false
 	for _, remote := range r.config.Leafnodes.Remotes {
 		if remote.Credentials == network {
 			found = true
-			err := r.state.Update(network, RegisterParticipant)
+			err := r.state.Update(network, component, Add)
 			if err != nil {
 				return err
 			}
@@ -189,14 +207,14 @@ func (r *Registry) addCredentials(network string) error {
 	return nil
 }
 
-func (r *Registry) removeCredentials(network string) (bool, error) {
+func (r *Registry) removeCredentials(network string, component string) (bool, error) {
 	usage, err := r.state.Usage(network)
 	if err != nil {
 		return false, err
 	}
 	if usage > 0 {
 		fmt.Printf("Removing participant cound from network '%s'\n", network)
-		err = r.state.Update(network, UnregisterParticipant)
+		err = r.state.Update(network, component, Remove)
 		if err != nil {
 			return false, err
 		}
