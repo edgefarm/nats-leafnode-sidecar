@@ -19,9 +19,11 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"path/filepath"
+	"strings"
 	"time"
 
-	api "github.com/edgefarm/anck-credentials/pkg/apis/config/v1alpha1"
+	api "github.com/edgefarm/nats-leafnode-sidecar/pkg/api"
 	common "github.com/edgefarm/nats-leafnode-sidecar/pkg/common"
 	"github.com/edgefarm/nats-leafnode-sidecar/pkg/files"
 	"github.com/fsnotify/fsnotify"
@@ -40,6 +42,8 @@ type NatsCredentials struct {
 
 // Client is a client for the registry service.
 type Client struct {
+	// component is the name of the component this client is for.
+	component string
 	// path to the credentials files
 	path string
 	// Nats connection
@@ -55,7 +59,7 @@ type Client struct {
 }
 
 // NewClient creates a new client for the registry service.
-func NewClient(credentialsMountDirectory string, natsURI string) (*Client, error) {
+func NewClient(credentialsMountDirectory string, natsURI string, component string) (*Client, error) {
 	opts := []nats.Option{nats.Timeout(time.Duration(1) * time.Second)}
 	opts = common.SetupConnOptions(opts)
 	ncChan := make(chan *nats.Conn)
@@ -88,6 +92,7 @@ func NewClient(credentialsMountDirectory string, natsURI string) (*Client, error
 	}
 
 	return &Client{
+		component:  component,
 		path:       credentialsMountDirectory,
 		nc:         nc,
 		watcher:    watcher,
@@ -102,6 +107,14 @@ func (c *Client) Start() error {
 	return nil
 }
 
+func (c *Client) add() error {
+	return c.action(Register())
+}
+
+func (c *Client) removeAll() error {
+	return c.action(Unregister())
+}
+
 func (c *Client) action(option *RegistryOptions) error {
 	f, err := files.GetSymlinks(c.path)
 	if err != nil {
@@ -112,21 +125,37 @@ func (c *Client) action(option *RegistryOptions) error {
 		if err != nil {
 			return err
 		}
+		networkName := filepath.Base(file)
 		creds := &api.Credentials{
-			NetworkParticipant: file,
-			Creds:              string(b),
+			Network:   filepath.Base(file),
+			Component: c.component,
+			Creds:     string(b),
 		}
-		fmt.Printf("%s network %s\n", option.subject, file)
+		fmt.Printf("%s network %s\n", option.subject, networkName)
 		err = c.Registry(option, creds)
 		if err != nil {
 			return err
 		}
 	}
-
 	return nil
 }
 
-func (c *Client) installWatch(path string, callback func() error) error {
+func (c *Client) remove(networkPath string) error {
+	network := filepath.Base(networkPath)
+	network = strings.TrimSuffix(network, ".creds")
+	creds := &api.Credentials{
+		Network:   network,
+		Component: c.component,
+	}
+	fmt.Printf("Unregistering network %s\n", network)
+	err := c.Registry(Unregister(), creds)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) installWatch(path string, addCallback func() error, removeCallback func(string) error) error {
 	go func() {
 		for {
 			select {
@@ -135,21 +164,19 @@ func (c *Client) installWatch(path string, callback func() error) error {
 					return
 				}
 				log.Println("event:", event)
-				if event.Op&fsnotify.Write == fsnotify.Write {
-					log.Println("modified file:", event.Name)
+				if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create {
+					log.Println("created/modified file:", event.Name)
+					err := addCallback()
+					if err != nil {
+						log.Println(err)
+					}
 				}
-				if event.Op&fsnotify.Remove == fsnotify.Remove {
-					log.Println("removed file:", event.Name)
-				}
-				if event.Op&fsnotify.Create == fsnotify.Create {
-					log.Println("created file:", event.Name)
-				}
-				if event.Op&fsnotify.Rename == fsnotify.Rename {
-					log.Println("created file:", event.Name)
-				}
-				err := callback()
-				if err != nil {
-					log.Println(err)
+				if event.Op&fsnotify.Remove == fsnotify.Remove || event.Op&fsnotify.Rename == fsnotify.Rename {
+					log.Println("removed/renamed file:", event.Name)
+					err := removeCallback(event.Name)
+					if err != nil {
+						log.Println(err)
+					}
 				}
 
 			case err, ok := <-c.watcher.Errors:
@@ -172,20 +199,24 @@ func (c *Client) installWatch(path string, callback func() error) error {
 	return nil
 }
 
-func (c *Client) watchCallback() error {
-	return c.action(Register())
+func (c *Client) addCallback() error {
+	return c.add()
+}
+
+func (c *Client) removeCallback(network string) error {
+	return c.remove(network)
 }
 
 // loop runs the client in a loop.
 func (c *Client) loop() {
 	// first time register all the credentials
-	err := c.action(Register())
+	err := c.add()
 	if err != nil {
 		log.Println(err)
 	}
 
 	// the watch will re-register the credentials on changes
-	err = c.installWatch(c.path, c.watchCallback)
+	err = c.installWatch(c.path, c.addCallback, c.removeCallback)
 	if err != nil {
 		log.Println(err)
 	}
@@ -204,7 +235,7 @@ func (c *Client) loop() {
 // Shutdown unregisteres the application and shuts down the nats connection.
 func (c *Client) Shutdown() error {
 	log.Println("Shutting down client")
-	err := c.action(Unregister())
+	err := c.removeAll()
 	if err != nil {
 		return err
 	}

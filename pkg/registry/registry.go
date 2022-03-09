@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"strings"
+	"path/filepath"
 	"time"
 
-	api "github.com/edgefarm/anck-credentials/pkg/apis/config/v1alpha1"
+	api "github.com/edgefarm/nats-leafnode-sidecar/pkg/api"
 	"github.com/edgefarm/nats-leafnode-sidecar/pkg/common"
 	"github.com/nats-io/nats.go"
 )
@@ -83,30 +83,17 @@ func NewRegistry(natsConfig string, creds string, natsURI string, state string) 
 	return r, nil
 }
 
-func splitNetworkParticipant(str string) (string, string, error) {
-	parts := strings.Split(str, ".")
-	if len(parts) != 2 {
-		return "", "", fmt.Errorf("Invalid format for network and component")
-	}
-	return parts[0], parts[1], nil
-}
-
 // Start starts the registry and handles all incoming requests for registering and unregistering
 func (r *Registry) Start() error {
 	var err error
 	r.registerSubscription, err = r.natsConn.Subscribe(common.RegisterSubject, func(m *nats.Msg) {
-		log.Println("Received register request")
 		creds := &api.Credentials{}
 		err := json.Unmarshal(m.Data, creds)
 		if err != nil {
 			log.Println("Error unmarshalling credentials: ", err)
 		}
-		network, component, err := splitNetworkParticipant(creds.NetworkParticipant)
-		if err != nil {
-			log.Println("Error splitting network and component: ", err)
-		}
-
-		err = r.addCredentials(network, component)
+		fmt.Printf("Received register request for network: %s and component: %s\n", creds.Network, creds.Component)
+		err = r.addCredentials(creds.Network, creds.Component)
 		if err == nil {
 			err = r.natsConn.Publish(m.Reply, []byte(common.OkResponse))
 			if err != nil {
@@ -118,7 +105,7 @@ func (r *Registry) Start() error {
 				log.Println(err)
 			}
 		}
-		err = r.writeFile(r.credsFile(creds.NetworkParticipant), creds.Creds)
+		err = r.writeFile(r.credsFile(creds.Network), creds.Creds)
 		if err != nil {
 			log.Println(err)
 		}
@@ -138,11 +125,7 @@ func (r *Registry) Start() error {
 		if err != nil {
 			log.Println("Error unmarshalling credentials: ", err)
 		}
-		network, component, err := splitNetworkParticipant(creds.NetworkParticipant)
-		if err != nil {
-			log.Println("Error splitting network and component: ", err)
-		}
-		deleteCredsfile, err := r.removeCredentials(network, component)
+		deleteCredsfile, err := r.removeCredentials(creds.Network, creds.Component)
 		if err == nil {
 			err = r.natsConn.Publish(m.Reply, []byte(common.OkResponse))
 			if err != nil {
@@ -156,7 +139,7 @@ func (r *Registry) Start() error {
 		}
 
 		if deleteCredsfile {
-			err = r.removeFile(r.credsFile(creds.NetworkParticipant))
+			err = r.removeFile(r.credsFile(creds.Network))
 			if err != nil {
 				log.Println(err)
 			}
@@ -188,12 +171,9 @@ func (r *Registry) Shutdown() {
 func (r *Registry) addCredentials(network string, component string) error {
 	found := false
 	for _, remote := range r.config.Leafnodes.Remotes {
-		if remote.Credentials == network {
+		networkName := filepath.Base(remote.Credentials)
+		if networkName == fmt.Sprintf("%s.creds", network) {
 			found = true
-			err := r.state.Update(network, component, Add)
-			if err != nil {
-				return err
-			}
 			break
 		}
 	}
@@ -202,6 +182,10 @@ func (r *Registry) addCredentials(network string, component string) error {
 			Url:         ngsHost,
 			Credentials: r.credsFile(network),
 		})
+	}
+	err := r.state.Update(network, component, Add)
+	if err != nil {
+		return err
 	}
 	r.configFileContent = jsonPrettyPrint(r.config.Dump())
 	return nil
@@ -226,6 +210,10 @@ func (r *Registry) removeCredentials(network string, component string) (bool, er
 				r.config.Leafnodes.Remotes = append(r.config.Leafnodes.Remotes[:i], r.config.Leafnodes.Remotes[i+1:]...)
 				break
 			}
+		}
+		err = r.state.Delete(network)
+		if err != nil {
+			return false, err
 		}
 	}
 	r.configFileContent = jsonPrettyPrint(r.config.Dump())

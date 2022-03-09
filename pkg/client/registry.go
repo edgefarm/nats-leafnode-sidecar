@@ -20,7 +20,7 @@ import (
 	"fmt"
 	"time"
 
-	api "github.com/edgefarm/anck-credentials/pkg/apis/config/v1alpha1"
+	api "github.com/edgefarm/nats-leafnode-sidecar/pkg/api"
 	"github.com/edgefarm/nats-leafnode-sidecar/pkg/common"
 )
 

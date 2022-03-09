@@ -30,9 +30,10 @@ import (
 )
 
 var (
-	cfgFile string
-	natsURI string
-	creds   string
+	cfgFile   string
+	natsURI   string
+	creds     string
+	component string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -45,7 +46,7 @@ telling the registry about new edgefarm.network credentials for the
 component attached to.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Println("client called")
-		registryClient, err := client.NewClient(creds, natsURI)
+		registryClient, err := client.NewClient(creds, natsURI, component)
 		if err != nil {
 			log.Println(err)
 			os.Exit(1)
@@ -109,6 +110,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.client.yaml)")
 	rootCmd.PersistentFlags().StringVar(&natsURI, "natsuri", "nats://nats.nats:4222", "natsURI to connect to")
 	rootCmd.PersistentFlags().StringVar(&creds, "creds", "/nats-credentials", "path where to find the nats credentials")
+	rootCmd.PersistentFlags().StringVar(&component, "component", "", "name of the component this is the sidecar for")
 
 }
 

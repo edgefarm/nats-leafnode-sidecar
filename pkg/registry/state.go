@@ -87,7 +87,7 @@ const (
 // Update updates the state.
 func (s *State) Update(network string, component string, action UpdateAction) error {
 	if _, ok := s.Current.NetworkUsage[network]; !ok {
-		return fmt.Errorf("network %s not found", network)
+		fmt.Printf("network %s not found. Creating...", network)
 	}
 	if action == Add {
 		// ignore multiple registrations for components
