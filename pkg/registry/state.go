@@ -86,13 +86,16 @@ const (
 
 // Update updates the state.
 func (s *State) Update(network string, component string, action UpdateAction) error {
-	if _, ok := s.Current.NetworkUsage[network]; !ok {
-		fmt.Printf("network %s not found. Creating...", network)
-	}
 	if action == Add {
+		if _, ok := s.Current.NetworkUsage[network]; !ok {
+			fmt.Printf("network %s not found. Creating...", network)
+		}
 		// ignore multiple registrations for components
 		s.Current.NetworkUsage[network] = unique.Slice(append(s.Current.NetworkUsage[network], component))
 	} else {
+		if _, ok := s.Current.NetworkUsage[network]; !ok {
+			return fmt.Errorf("network %s not found", network)
+		}
 		s.Current.NetworkUsage[network] = unique.Slice(remove(s.Current.NetworkUsage[network], component))
 	}
 	return s.Save()
