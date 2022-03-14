@@ -7,9 +7,9 @@ function main {
 
     prepare
 
-    # source './test1.sh'
-    # test1_do
-    # sleep 1
+    source './test1.sh'
+    test1_do
+    sleep 1
     source './test2.sh'
     test2_do
     sleep 1
