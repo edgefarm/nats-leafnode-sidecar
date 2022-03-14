@@ -50,8 +50,6 @@ type Client struct {
 	nc *nats.Conn
 	// Watcher to monitor credentials directory
 	watcher *fsnotify.Watcher
-	// Reregister
-	reregister chan interface{}
 	// finish is a channel to signal the client to shutdown.
 	finish chan interface{}
 	// finishWatch is a channel to signal the watch loop to finish
@@ -92,12 +90,12 @@ func NewClient(credentialsMountDirectory string, natsURI string, component strin
 	}
 
 	return &Client{
-		component:  component,
-		path:       credentialsMountDirectory,
-		nc:         nc,
-		watcher:    watcher,
-		reregister: make(chan interface{}),
-		finish:     make(chan interface{}),
+		component:   component,
+		path:        credentialsMountDirectory,
+		nc:          nc,
+		watcher:     watcher,
+		finish:      make(chan interface{}),
+		finishWatch: make(chan interface{}),
 	}, nil
 }
 
@@ -160,6 +158,7 @@ func (c *Client) installWatch(path string, addCallback func() error, removeCallb
 		for {
 			select {
 			case event, ok := <-c.watcher.Events:
+				fmt.Println("c.Watcher.Events: ", event, ok)
 				if !ok {
 					return
 				}
@@ -180,14 +179,18 @@ func (c *Client) installWatch(path string, addCallback func() error, removeCallb
 				}
 
 			case err, ok := <-c.watcher.Errors:
+				fmt.Println("c.Watcher.Errors: ", err, ok)
 				if !ok {
 					return
 				}
 				log.Println("error:", err)
+
 			case <-c.finishWatch:
 				fmt.Println("Stopping watcher")
 				c.watcher.Close()
 				return
+
+			case <-time.After(1 * time.Second):
 			}
 		}
 	}()
@@ -196,6 +199,7 @@ func (c *Client) installWatch(path string, addCallback func() error, removeCallb
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -233,14 +237,13 @@ func (c *Client) loop() {
 }
 
 // Shutdown unregisteres the application and shuts down the nats connection.
-func (c *Client) Shutdown() error {
+func (c *Client) Shutdown() {
 	log.Println("Shutting down client")
 	err := c.removeAll()
 	if err != nil {
-		return err
+		fmt.Println(err)
 	}
 	c.finishWatch <- true
 	c.finish <- true
 	c.nc.Close()
-	return nil
 }

@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -66,19 +67,13 @@ component attached to.`,
 				log.Printf("Trapped \"%v\" signal\n", sig)
 				switch sig {
 				case syscall.SIGINT:
-					err := registryClient.Shutdown()
-					if err != nil {
-						log.Println(err)
-						os.Exit(1)
-					}
+					fmt.Println("1")
+					registryClient.Shutdown()
+					fmt.Println("2")
 					exit <- true
 					return
 				case syscall.SIGTERM:
-					err := registryClient.Shutdown()
-					if err != nil {
-						log.Println(err)
-						os.Exit(1)
-					}
+					registryClient.Shutdown()
 					exit <- true
 					return
 				}
@@ -86,6 +81,7 @@ component attached to.`,
 		}()
 
 		<-exit
+		fmt.Println("Goodbye")
 		os.Exit(0)
 
 	},
