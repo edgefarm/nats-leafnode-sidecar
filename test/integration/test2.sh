@@ -39,7 +39,6 @@ function test2_cleanup_registry {
 
 function test2_cleanup_tmpdir {
     rm -rf ${1}
-    TEST_FAILED=0
 }
 
 function test2_do {

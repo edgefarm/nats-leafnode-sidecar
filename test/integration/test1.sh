@@ -25,7 +25,6 @@ function test1_cleanup() {
     sleep 0.5
     kill ${3} &> ${1}/${TEST_LOG_FILE}
     rm -rf ${1}
-    TEST_FAILED=0
 }
 
 function check_network_files  {
