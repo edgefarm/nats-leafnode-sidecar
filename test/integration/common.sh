@@ -1,13 +1,11 @@
 #!/bin/bash
 
 function prepare_test {
-    TEST_FAILED=0
     prepare_volume ${1}
     prepare_nats_config ${1}
 }
 
 function prepare_nats_config {
-    TEST_FAILED=0
     mkdir ${1}/config && chmod 777 -R ${1}/config
     cat <<EOF > ${TMP_DIR}/config/nats.json
 {
@@ -21,7 +19,6 @@ EOF
 }
 
 function prepare_volume {
-    TEST_FAILED=0
     mkdir -p ${1}/nats-credentials/..mytimeanddate/
     ln -s ${1}/nats-credentials/..mytimeanddate ${1}/nats-credentials/..data
 
