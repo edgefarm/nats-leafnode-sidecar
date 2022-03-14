@@ -154,5 +154,5 @@ function test2_do {
     cat ${TMP_DIR}/config/nats.json
     assert_contain `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes'` "[]" "remote credentials not equal"
 
-    # test2_cleanup_tmpdir ${TMP_DIR}
+    test2_cleanup_tmpdir ${TMP_DIR}
 }
