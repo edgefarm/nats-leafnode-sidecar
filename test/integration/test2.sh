@@ -107,7 +107,7 @@ function test2_do {
     [[ $? -eq 0 ]] || TEST_FAILED=1
     assert_contain `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[1].credentials'` "creds/mynetwork2.creds" "remote credentials not equal"
     [[ $? -eq 0 ]] || TEST_FAILED=1
-    check_network_files ${TMP_DIR} mynetwork ${jwy1} ${nkey1}
+    check_network_files ${TMP_DIR} mynetwork ${jwt1} ${nkey1}
     check_network_files ${TMP_DIR} mynetwork2 ${jwt2} ${nkey2}
 
     echo -e "\n\e[7mRemoving 'mynetwork' for client2\e[27m\n"
@@ -125,7 +125,7 @@ function test2_do {
     [[ $? -eq 0 ]] || TEST_FAILED=1
     assert_contain `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[1].credentials'` "creds/mynetwork2.creds" "remote credentials not equal"
     [[ $? -eq 0 ]] || TEST_FAILED=1
-    check_network_files ${TMP_DIR} mynetwork ${jwy1} ${nkey1}
+    check_network_files ${TMP_DIR} mynetwork ${jwt1} ${nkey1}
     check_network_files ${TMP_DIR} mynetwork2 ${jwt2} ${nkey2}
 
     echo -e "\n\e[7mRemoving 'mynetwork' client1\e[27m\n"
