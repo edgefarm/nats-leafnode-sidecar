@@ -31,6 +31,10 @@ available_port()
 
 function prepare {
     echo "Preparing test environment..."
+    if ! [ -x "$(command -v netstat)" ]; then
+        echo 'Error: netstat is not installed. Run "apt install net-tools"' >&2
+        exit 1
+    fi
     NATS_PORT=$(available_port)
 
     [[ $(docker ps -f "name=$NATS_SERVER_NAME" --format '{{.Names}}') == $NATS_SERVER_NAME ]] && \

@@ -16,22 +16,22 @@ limitations under the License.
 package client
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"path/filepath"
+	"strings"
 	"time"
 
-	api "github.com/edgefarm/anck-credentials/pkg/apis/config/v1alpha1"
+	api "github.com/edgefarm/nats-leafnode-sidecar/pkg/api"
 	common "github.com/edgefarm/nats-leafnode-sidecar/pkg/common"
-	files "github.com/edgefarm/nats-leafnode-sidecar/pkg/files"
+	"github.com/edgefarm/nats-leafnode-sidecar/pkg/files"
+	"github.com/fsnotify/fsnotify"
 	nats "github.com/nats-io/nats.go"
 )
 
 const (
-	edgefarmNetworkAccountNameSecret = "anck-credentials-natsUserData"
-	connectTimeoutSeconds            = 10
+	connectTimeoutSeconds = 10
 )
 
 // NatsCredentials contains the credentials for the nats server.
@@ -42,39 +42,22 @@ type NatsCredentials struct {
 
 // Client is a client for the registry service.
 type Client struct {
-	// creds contains the credentials for the current application
-	creds *api.Credentials
+	// component is the name of the component this client is for.
+	component string
+	// path to the credentials files
+	path string
 	// Nats connection
 	nc *nats.Conn
+	// Watcher to monitor credentials directory
+	watcher *fsnotify.Watcher
+	// finish is a channel to signal the client to shutdown.
+	finish chan interface{}
+	// finishWatch is a channel to signal the watch loop to finish
+	finishWatch chan interface{}
 }
 
 // NewClient creates a new client for the registry service.
-func NewClient(credentialsMountDirectory string, natsURI string) (*Client, error) {
-	creds := &api.Credentials{}
-	err := func() error {
-		f, err := files.GetSymlinks(credentialsMountDirectory)
-		if err != nil {
-			return err
-		}
-		for _, file := range f {
-			if filepath.Base(file) == edgefarmNetworkAccountNameSecret {
-				b, err := ioutil.ReadFile(file)
-				if err != nil {
-					return err
-				}
-				err = json.Unmarshal(b, &creds)
-				if err != nil {
-					return err
-				}
-				return nil
-			}
-		}
-		return fmt.Errorf("no credentials file found at '%s/%s'", credentialsMountDirectory, edgefarmNetworkAccountNameSecret)
-	}()
-	if err != nil {
-		return nil, err
-	}
-
+func NewClient(credentialsMountDirectory string, natsURI string, component string) (*Client, error) {
 	opts := []nats.Option{nats.Timeout(time.Duration(1) * time.Second)}
 	opts = common.SetupConnOptions(opts)
 	ncChan := make(chan *nats.Conn)
@@ -101,16 +84,118 @@ func NewClient(credentialsMountDirectory string, natsURI string) (*Client, error
 
 	nc := <-ncChan
 
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return nil, err
+	}
+
 	return &Client{
-		creds: creds,
-		nc:    nc,
+		component:   component,
+		path:        credentialsMountDirectory,
+		nc:          nc,
+		watcher:     watcher,
+		finish:      make(chan interface{}),
+		finishWatch: make(chan interface{}),
 	}, nil
 }
 
-// Connect registeres the application and connects to the nats server.
-func (c *Client) Connect() error {
-	log.Printf("Credentials found for userAccountName %s\n", c.creds.UserAccountName)
-	err := c.Registry(Register())
+// Start starts the client.
+func (c *Client) Start() error {
+	go c.loop()
+	return nil
+}
+
+func (c *Client) add() error {
+	return c.action(Register())
+}
+
+func (c *Client) removeAll() error {
+	return c.action(Unregister())
+}
+
+func (c *Client) action(option *RegistryOptions) error {
+	f, err := files.GetSymlinks(c.path)
+	if err != nil {
+		return err
+	}
+	for _, file := range f {
+		b, err := ioutil.ReadFile(file)
+		if err != nil {
+			return err
+		}
+		networkName := filepath.Base(file)
+		creds := &api.Credentials{
+			Network:   filepath.Base(file),
+			Component: c.component,
+			Creds:     string(b),
+		}
+		fmt.Printf("%s network %s\n", option.subject, networkName)
+		err = c.Registry(option, creds)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *Client) remove(networkPath string) error {
+	network := filepath.Base(networkPath)
+	network = strings.TrimSuffix(network, ".creds")
+	creds := &api.Credentials{
+		Network:   network,
+		Component: c.component,
+	}
+	fmt.Printf("Unregistering network %s\n", network)
+	err := c.Registry(Unregister(), creds)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *Client) installWatch(path string, addCallback func() error, removeCallback func(string) error) error {
+	go func() {
+		for {
+			select {
+			case event, ok := <-c.watcher.Events:
+				fmt.Println("c.Watcher.Events: ", event, ok)
+				if !ok {
+					return
+				}
+				log.Println("event:", event)
+				if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create {
+					log.Println("created/modified file:", event.Name)
+					err := addCallback()
+					if err != nil {
+						log.Println(err)
+					}
+				}
+				if event.Op&fsnotify.Remove == fsnotify.Remove || event.Op&fsnotify.Rename == fsnotify.Rename {
+					log.Println("removed/renamed file:", event.Name)
+					err := removeCallback(event.Name)
+					if err != nil {
+						log.Println(err)
+					}
+				}
+
+			case err, ok := <-c.watcher.Errors:
+				fmt.Println("c.Watcher.Errors: ", err, ok)
+				if !ok {
+					return
+				}
+				log.Println("error:", err)
+
+			case <-c.finishWatch:
+				fmt.Println("Stopping watcher")
+				c.watcher.Close()
+				return
+
+			case <-time.After(1 * time.Second):
+			}
+		}
+	}()
+
+	err := c.watcher.Add(path)
 	if err != nil {
 		return err
 	}
@@ -118,13 +203,47 @@ func (c *Client) Connect() error {
 	return nil
 }
 
-// Shutdown unregisteres the application and shuts down the nats connection.
-func (c *Client) Shutdown() error {
-	log.Println("Shutting down client")
-	err := c.Registry(Unregister())
+func (c *Client) addCallback() error {
+	return c.add()
+}
+
+func (c *Client) removeCallback(network string) error {
+	return c.remove(network)
+}
+
+// loop runs the client in a loop.
+func (c *Client) loop() {
+	// first time register all the credentials
+	err := c.add()
 	if err != nil {
-		return err
+		log.Println(err)
 	}
+
+	// the watch will re-register the credentials on changes
+	err = c.installWatch(c.path, c.addCallback, c.removeCallback)
+	if err != nil {
+		log.Println(err)
+	}
+
+	for {
+		select {
+		case <-c.finish:
+			fmt.Println("Stopping loop")
+			return
+		default:
+			time.Sleep(time.Second * 1)
+		}
+	}
+}
+
+// Shutdown unregisteres the application and shuts down the nats connection.
+func (c *Client) Shutdown() {
+	log.Println("Shutting down client")
+	err := c.removeAll()
+	if err != nil {
+		fmt.Println(err)
+	}
+	c.finishWatch <- true
+	c.finish <- true
 	c.nc.Close()
-	return nil
 }

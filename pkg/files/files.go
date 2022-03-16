@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 )
 
 // GetFiles returns a list of files in the given directory.
@@ -29,8 +30,12 @@ func GetFiles(dir string) ([]string, error) {
 			fmt.Println(err)
 			return nil
 		}
-		if !info.IsDir() {
-			files = append(files, path)
+		// filter out not visible files
+		if !strings.HasPrefix(info.Name(), ".") {
+			// filter out directories
+			if !info.IsDir() {
+				files = append(files, path)
+			}
 		}
 		return nil
 	})
@@ -48,9 +53,14 @@ func GetSymlinks(dir string) ([]string, error) {
 			fmt.Println(err)
 			return nil
 		}
-		if !info.IsDir() && info.Mode()&os.ModeSymlink != 0 {
-			files = append(files, path)
+		// filter out not visible files
+		if !strings.HasPrefix(info.Name(), ".") {
+			// filter out directories
+			if !info.IsDir() && info.Mode()&os.ModeSymlink != 0 {
+				files = append(files, path)
+			}
 		}
+
 		return nil
 	})
 	if err != nil {

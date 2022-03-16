@@ -16,6 +16,7 @@ limitations under the License.
 package cmd
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -30,9 +31,10 @@ import (
 )
 
 var (
-	cfgFile string
-	natsURI string
-	creds   string
+	cfgFile   string
+	natsURI   string
+	creds     string
+	component string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -41,15 +43,16 @@ var rootCmd = &cobra.Command{
 	Short: "Client subscribes and unsubscribes to the corresponding registry.",
 	Long: `Client subscribes and unsubscribes to the corresponding registry.
 This is supposed to run as a sidecar container and is responsible for
-telling the registry about new leafnode connections.`,
+telling the registry about new edgefarm.network credentials for the
+component attached to.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Println("client called")
-		registryClient, err := client.NewClient(creds, natsURI)
+		registryClient, err := client.NewClient(creds, natsURI, component)
 		if err != nil {
 			log.Println(err)
 			os.Exit(1)
 		}
-		err = registryClient.Connect()
+		err = registryClient.Start()
 		if err != nil {
 			log.Println(err)
 			os.Exit(1)
@@ -64,19 +67,13 @@ telling the registry about new leafnode connections.`,
 				log.Printf("Trapped \"%v\" signal\n", sig)
 				switch sig {
 				case syscall.SIGINT:
-					err := registryClient.Shutdown()
-					if err != nil {
-						log.Println(err)
-						os.Exit(1)
-					}
+					fmt.Println("1")
+					registryClient.Shutdown()
+					fmt.Println("2")
 					exit <- true
 					return
 				case syscall.SIGTERM:
-					err := registryClient.Shutdown()
-					if err != nil {
-						log.Println(err)
-						os.Exit(1)
-					}
+					registryClient.Shutdown()
 					exit <- true
 					return
 				}
@@ -84,6 +81,7 @@ telling the registry about new leafnode connections.`,
 		}()
 
 		<-exit
+		fmt.Println("Goodbye")
 		os.Exit(0)
 
 	},
@@ -108,6 +106,7 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.client.yaml)")
 	rootCmd.PersistentFlags().StringVar(&natsURI, "natsuri", "nats://nats.nats:4222", "natsURI to connect to")
 	rootCmd.PersistentFlags().StringVar(&creds, "creds", "/nats-credentials", "path where to find the nats credentials")
+	rootCmd.PersistentFlags().StringVar(&component, "component", "", "name of the component this is the sidecar for")
 
 }
 
