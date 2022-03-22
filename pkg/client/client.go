@@ -36,7 +36,7 @@ const (
 
 var (
 	// filter that tells the watcher which files to watch
-	watchFilesFilter     = []string{".creds"}
+	watchFilesFilter = []string{".creds"}
 	// filter that is evaluated after `watchedFiles` to hide specific files in a second stage
 	ignoredFilesFilter = []string{"nats-sidecar.creds"}
 )
@@ -197,8 +197,9 @@ func (c *Client) installWatch(path string, addCallback func() error, removeCallb
 						break
 					}
 					for _, ignoredFile := range ignoredFilesFilter {
-					if strings.Contains(event.Name, ignoredFile) {
-						ignored = true
+						if strings.Contains(event.Name, ignoredFile) {
+							ignored = true
+						}
 					}
 				}
 				if ignored {
