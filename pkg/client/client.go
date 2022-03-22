@@ -35,8 +35,10 @@ const (
 )
 
 var (
-	// IgnoredFromWatch is a list of files that should be ignored from the watch.
-	ignoredFromWatch = []string{"edgefarm-sys.creds", "..data", ".pub"}
+	// filter that tells the watcher which files to watch
+	watchFilesFilter     = []string{".creds"}
+	// filter that is evaluated after `watchedFiles` to hide specific files in a second stage
+	ignoredFilesFilter = []string{"edgefarm-sys.creds"}
 )
 
 // NatsCredentials contains the credentials for the nats server.
@@ -120,7 +122,7 @@ func (c *Client) removeAll() error {
 }
 
 func isIgnored(file string) bool {
-	for _, i := range ignoredFromWatch {
+	for _, i := range ignoredFilesFilter {
 		if strings.Contains(file, i) {
 			return true
 		}
@@ -189,7 +191,12 @@ func (c *Client) installWatch(path string, addCallback func() error, removeCallb
 					return
 				}
 				ignored := false
-				for _, ignoredFile := range ignoredFromWatch {
+				for _, watchFile := range watchFilesFilter {
+					if !strings.Contains(event.Name, watchFile) {
+						ignored = true
+						break
+					}
+					for _, ignoredFile := range ignoredFilesFilter {
 					if strings.Contains(event.Name, ignoredFile) {
 						ignored = true
 					}
