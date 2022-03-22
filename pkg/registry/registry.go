@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	natsConfig "github.com/edgefarm/anck/pkg/nats"
 	api "github.com/edgefarm/nats-leafnode-sidecar/pkg/api"
 	"github.com/edgefarm/nats-leafnode-sidecar/pkg/common"
 	"github.com/nats-io/nats.go"
@@ -20,18 +21,18 @@ const (
 
 // Registry is a registry for nats-leafnodes
 type Registry struct {
-	configFileContent      string
+	// configFileContent      string
 	credsFilesPath         string
 	configFilePath         string
 	natsConn               *nats.Conn
 	registerSubscription   *nats.Subscription
 	unregisterSubscription *nats.Subscription
 	state                  *State
-	config                 *NatsConfig
+	config                 *natsConfig.Config
 }
 
 // NewRegistry creates a new registry
-func NewRegistry(natsConfig string, creds string, natsURI string, state string) (*Registry, error) {
+func NewRegistry(natsConfigPath string, creds string, natsURI string, state string) (*Registry, error) {
 	opts := []nats.Option{nats.Timeout(time.Duration(1) * time.Second)}
 	opts = append(opts, nats.UserCredentials(common.CredentialsFile))
 	opts = common.SetupConnOptions(opts)
@@ -57,25 +58,18 @@ func NewRegistry(natsConfig string, creds string, natsURI string, state string) 
 		}
 	}()
 
-	readConfig, err := readFile(natsConfig)
+	nc := <-ncChan
+	config, err := natsConfig.LoadFromFile(natsConfigPath)
 	if err != nil {
-		log.Printf("Error reading config file: %s", err)
-	}
-	// If the config file doesn't exist, create it. This is really not the standard case.
-	// Just to make sure that a valid config file is always there.
-	if readConfig == "" {
-		log.Println("Using default config file, however a config file should always exist. This might be an error. Please have a look.")
-		// readConfig = defaultConfig
+		return nil, err
 	}
 
-	nc := <-ncChan
 	r := &Registry{
-		configFileContent: readConfig,
-		credsFilesPath:    creds,
-		configFilePath:    natsConfig,
-		natsConn:          nc,
-		state:             NewState(state),
-		config:            NewJson(natsConfig),
+		credsFilesPath: creds,
+		configFilePath: natsConfigPath,
+		natsConn:       nc,
+		state:          NewState(state),
+		config:         config,
 	}
 	err = r.updateConfigFile()
 	if err != nil {
@@ -94,7 +88,7 @@ func (r *Registry) Start() error {
 			log.Println("Error unmarshalling credentials: ", err)
 		}
 		fmt.Printf("Received register request for network: %s and component: %s\n", creds.Network, creds.Component)
-		err = r.addCredentials(creds.Network, creds.Component)
+		err = r.addCredentials(creds.Network, creds.Component, creds.AccountPublicKey)
 		if err == nil {
 			err = r.natsConn.Publish(m.Reply, []byte(common.OkResponse))
 			if err != nil {
@@ -169,7 +163,7 @@ func (r *Registry) Shutdown() {
 	os.Exit(0)
 }
 
-func (r *Registry) addCredentials(network string, component string) error {
+func (r *Registry) addCredentials(network string, component string, accountPublicKey string) error {
 	found := false
 	for _, remote := range r.config.Leafnodes.Remotes {
 		networkName := filepath.Base(remote.Credentials)
@@ -179,16 +173,15 @@ func (r *Registry) addCredentials(network string, component string) error {
 		}
 	}
 	if !found {
-		r.config.Leafnodes.Remotes = append(r.config.Leafnodes.Remotes, Remote{
-			Url:         ngsHost,
-			Credentials: r.credsFile(network),
-		})
+		err := r.config.AddRemote(ngsHost, r.credsFile(network), accountPublicKey)
+		if err != nil {
+			return err
+		}
 	}
 	err := r.state.Update(network, component, Add)
 	if err != nil {
 		return err
 	}
-	r.configFileContent = jsonPrettyPrint(r.config.Dump())
 	return nil
 }
 
@@ -206,9 +199,12 @@ func (r *Registry) removeCredentials(network string, component string) (bool, er
 		usage--
 	}
 	if usage <= 0 {
-		for i, remote := range r.config.Leafnodes.Remotes {
+		for _, remote := range r.config.Leafnodes.Remotes {
 			if remote.Credentials == r.credsFile(network) {
-				r.config.Leafnodes.Remotes = append(r.config.Leafnodes.Remotes[:i], r.config.Leafnodes.Remotes[i+1:]...)
+				err = r.config.RemoveRemoteByCredsfile(remote.Credentials)
+				if err != nil {
+					return false, err
+				}
 				break
 			}
 		}
@@ -217,7 +213,6 @@ func (r *Registry) removeCredentials(network string, component string) (bool, er
 			return false, err
 		}
 	}
-	r.configFileContent = jsonPrettyPrint(r.config.Dump())
 	return usage <= 0, nil
 }
 

@@ -9,12 +9,30 @@ function prepare_nats_config {
     mkdir ${1}/config && chmod 777 -R ${1}/config
     cat <<EOF > ${TMP_DIR}/config/nats.json
 {
-	"http": 8222,
-	"leafnodes": {
-		"remotes": []
-	},
-	"pid_file": "/var/run/nats.pid"
+  "pid_file": "/var/run/nats/nats.pid",
+  "http": 8222,
+  "leafnodes": {
+    "remotes": [
+      {
+        "url": "tls://connect.ngs.global:7422",
+        "credentials": "/creds/edgefarm-sys.creds",
+        "account": "MY-SYS-ACCOUNT-PUB-KEY"
+      }
+    ]
+  },
+  "operator": "MY-OPERATOR-JWY,
+  "system_account": "MY-SYS-ACCOUNT-PUB-KEY",
+  "resolver": {
+    "type": "cache",
+    "dir": "/jwt",
+    "ttl": "1h",
+    "timeout": "1.9s"
+  },
+  "resolver_preload": {
+    "MY-SYS-ACCOUNT-PUB-KEY": "MY-SYS-ACCOUNT-JWT"
+  }
 }
+
 EOF
 }
 
@@ -30,6 +48,7 @@ function add_credsfile {
     symlink=${2} # where the symlink is stored
     jwt=${3}
     nkey=${4}
+    accountPublicKey=${5}
     echo "-----BEGIN NATS USER JWT-----" > ${path}
     echo ${jwt} >> ${path}
     echo "-----END NATS USER JWT-----" >> ${path}
@@ -45,6 +64,8 @@ function add_credsfile {
     echo "*************************************************************" >> ${path}
 
     ln -s ${path} ${symlink}
+    echo ${accountPublicKey} > ${path}.pub
+    ln -s ${path}.pub ${symlink}.pub
 }
 
 
