@@ -8,4 +8,6 @@ type Credentials struct {
 	Network string `json:"network"`
 	// Creds is the credentials for the network
 	Creds string `json:"creds"`
+	// AccountPublicKey is the public key of the account the user belongs to
+	AccountPublicKey string `json:"accountPublicKey"`
 }

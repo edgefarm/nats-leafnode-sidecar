@@ -34,6 +34,10 @@ const (
 	connectTimeoutSeconds = 10
 )
 
+var (
+	ignoredFromWatch = []string{"edgefarm-sys.creds", "..data", ".pub"}
+)
+
 // NatsCredentials contains the credentials for the nats server.
 type NatsCredentials struct {
 	Username         string `json:"username"`
@@ -159,11 +163,20 @@ func (c *Client) installWatch(path string, addCallback func() error, removeCallb
 		for {
 			select {
 			case event, ok := <-c.watcher.Events:
-				fmt.Println("c.Watcher.Events: ", event, ok)
 				if !ok {
 					return
 				}
-				log.Println("event:", event)
+				ignored := false
+				for _, ignoredFile := range ignoredFromWatch {
+					if strings.Contains(event.Name, ignoredFile) {
+						ignored = true
+					}
+				}
+				if ignored {
+					fmt.Println("Ignoring event: ", event)
+					continue
+				}
+				fmt.Println("event: ", event)
 				if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create {
 					log.Println("created/modified file:", event.Name)
 					err := addCallback()
@@ -178,7 +191,6 @@ func (c *Client) installWatch(path string, addCallback func() error, removeCallb
 						log.Println(err)
 					}
 				}
-
 			case err, ok := <-c.watcher.Errors:
 				fmt.Println("c.Watcher.Errors: ", err, ok)
 				if !ok {
