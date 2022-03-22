@@ -122,9 +122,14 @@ func (c *Client) removeAll() error {
 }
 
 func isIgnored(file string) bool {
-	for _, i := range ignoredFilesFilter {
-		if strings.Contains(file, i) {
+	for _, watchFile := range watchFilesFilter {
+		if !strings.Contains(file, watchFile) {
 			return true
+		}
+		for _, ignoredFile := range ignoredFilesFilter {
+			if strings.Contains(file, ignoredFile) {
+				return true
+			}
 		}
 	}
 	return false
@@ -190,18 +195,7 @@ func (c *Client) installWatch(path string, addCallback func() error, removeCallb
 				if !ok {
 					return
 				}
-				ignored := false
-				for _, watchFile := range watchFilesFilter {
-					if !strings.Contains(event.Name, watchFile) {
-						ignored = true
-						break
-					}
-					for _, ignoredFile := range ignoredFilesFilter {
-						if strings.Contains(event.Name, ignoredFile) {
-							ignored = true
-						}
-					}
-				}
+				ignored := isIgnored(event.Name)
 				if ignored {
 					fmt.Println("Ignoring event: ", event)
 					continue
