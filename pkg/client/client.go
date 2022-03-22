@@ -38,7 +38,7 @@ var (
 	// filter that tells the watcher which files to watch
 	watchFilesFilter     = []string{".creds"}
 	// filter that is evaluated after `watchedFiles` to hide specific files in a second stage
-	ignoredFilesFilter = []string{"edgefarm-sys.creds"}
+	ignoredFilesFilter = []string{"nats-sidecar.creds"}
 )
 
 // NatsCredentials contains the credentials for the nats server.
