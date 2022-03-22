@@ -64,7 +64,7 @@ type Client struct {
 // NewClient creates a new client for the registry service.
 func NewClient(credentialsMountDirectory string, natsURI string, component string) (*Client, error) {
 	opts := []nats.Option{nats.Timeout(time.Duration(1) * time.Second)}
-	opts = append(opts, nats.UserInfo(common.FixedNatsUser, common.FixedNatsPassword))
+	opts = append(opts, nats.UserCredentials(common.CredentialsFile))
 	opts = common.SetupConnOptions(opts)
 	ncChan := make(chan *nats.Conn)
 	go func() {
