@@ -3,7 +3,7 @@ module github.com/edgefarm/nats-leafnode-sidecar
 go 1.17
 
 require (
-	github.com/edgefarm/anck v0.4.0-dev2
+	github.com/edgefarm/anck v0.4.0-dev3
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/nats-io/nats.go v1.13.1-0.20220216000616-0096b1bfae8d

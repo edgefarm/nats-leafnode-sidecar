@@ -11,4 +11,9 @@ const (
 	ErrorResponse = "error"
 	// CredentialsFile is the name of the file containing the credentials
 	CredentialsFile = "/creds/edgefarm-sys.creds"
+
+	// FixedNatsUser is the user used to connect to the NATS server
+	FixedNatsUser = "nats-sidecar"
+	// FixedNatsPassword is the user used to connect to the NATS server
+	FixedNatsPassword = "nats-sidecar"
 )

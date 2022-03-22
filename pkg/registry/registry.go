@@ -34,7 +34,7 @@ type Registry struct {
 // NewRegistry creates a new registry
 func NewRegistry(natsConfigPath string, creds string, natsURI string, state string) (*Registry, error) {
 	opts := []nats.Option{nats.Timeout(time.Duration(1) * time.Second)}
-	opts = append(opts, nats.UserCredentials(common.CredentialsFile))
+	opts = append(opts, nats.UserInfo(common.FixedNatsUser, common.FixedNatsPassword))
 	opts = common.SetupConnOptions(opts)
 	ncChan := make(chan *nats.Conn)
 	go func() {

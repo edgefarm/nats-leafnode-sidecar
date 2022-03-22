@@ -11,13 +11,25 @@ import (
 
 // Config is the configuration for the NATS server
 type Config struct {
-	PidFile         *string     `json:"pid_file,omitempty"`
-	HTTP            int         `json:"http"`
-	Leafnodes       *Leafnodes  `json:"leafnodes,omitempty"`
-	Operator        *string     `json:"operator,omitempty"`
-	SystemAccount   *string     `json:"system_account,omitempty"`
-	Resolver        *Resolver   `json:"resolver,omitempty"`
-	ResolverPreload interface{} `json:"resolver_preload,omitempty"`
+	Authorization   *Authorization `json:"authorization,omitempty"`
+	PidFile         *string        `json:"pid_file,omitempty"`
+	HTTP            int            `json:"http"`
+	Leafnodes       *Leafnodes     `json:"leafnodes,omitempty"`
+	Operator        *string        `json:"operator,omitempty"`
+	SystemAccount   *string        `json:"system_account,omitempty"`
+	Resolver        *Resolver      `json:"resolver,omitempty"`
+	ResolverPreload interface{}    `json:"resolver_preload,omitempty"`
+}
+
+// User contains the user information
+type User struct {
+	User     string `json:"user"`
+	Password string `json:"password"`
+}
+
+// Authorization is the authorization configuration
+type Authorization struct {
+	Users []User `json:"users,omitempty"`
 }
 
 // Remotes is the remote configuration part
@@ -151,6 +163,22 @@ func WithCacheResolver(operatorJWT string, sysAccountPubKey string, sysAccountJW
 			panic(err)
 		}
 		c.ResolverPreload = filled.ResolverPreload
+	}
+}
+
+// WithAdminUser sets an admin user
+func WithAdminUser(user string, password string) Option {
+	return func(c *Config) {
+		if c.Authorization == nil {
+			c.Authorization = &Authorization{}
+		}
+		if c.Authorization.Users == nil {
+			c.Authorization.Users = make([]User, 0)
+		}
+		c.Authorization.Users = append(c.Authorization.Users, User{
+			User:     user,
+			Password: password,
+		})
 	}
 }
 
