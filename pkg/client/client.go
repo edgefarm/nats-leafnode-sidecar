@@ -35,6 +35,7 @@ const (
 )
 
 var (
+	// IgnoredFromWatch is a list of files that should be ignored from the watch.
 	ignoredFromWatch = []string{"edgefarm-sys.creds", "..data", ".pub"}
 )
 
@@ -118,21 +119,42 @@ func (c *Client) removeAll() error {
 	return c.action(Unregister())
 }
 
+func isIgnored(file string) bool {
+	for _, i := range ignoredFromWatch {
+		if strings.Contains(file, i) {
+			return true
+		}
+	}
+	return false
+}
+
 func (c *Client) action(option *RegistryOptions) error {
 	f, err := files.GetSymlinks(c.path)
 	if err != nil {
 		return err
 	}
-	for _, file := range f {
-		b, err := ioutil.ReadFile(file)
+	credsFiles := make([]string, 0)
+	for _, f := range f {
+		if !isIgnored(f) {
+			credsFiles = append(credsFiles, f)
+		}
+	}
+
+	for _, file := range credsFiles {
+		credsContent, err := ioutil.ReadFile(file)
+		if err != nil {
+			return err
+		}
+		accountPubKeyContent, err := ioutil.ReadFile(fmt.Sprintf("%s.pub", file))
 		if err != nil {
 			return err
 		}
 		networkName := filepath.Base(file)
 		creds := &api.Credentials{
-			Network:   filepath.Base(file),
-			Component: c.component,
-			Creds:     string(b),
+			Network:          filepath.Base(file),
+			Component:        c.component,
+			Creds:            string(credsContent),
+			AccountPublicKey: string(accountPubKeyContent),
 		}
 		fmt.Printf("%s network %s\n", option.subject, networkName)
 		err = c.Registry(option, creds)
