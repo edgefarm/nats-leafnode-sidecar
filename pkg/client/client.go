@@ -153,7 +153,7 @@ func (c *Client) action(option *RegistryOptions) error {
 		}
 		networkName := filepath.Base(file)
 		creds := &api.Credentials{
-			Network:          filepath.Base(file),
+			Network:          strings.TrimSuffix(filepath.Base(file), ".creds"),
 			Component:        c.component,
 			Creds:            string(credsContent),
 			AccountPublicKey: string(accountPubKeyContent),
