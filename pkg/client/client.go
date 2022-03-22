@@ -148,17 +148,18 @@ func (c *Client) action(option *RegistryOptions) error {
 	}
 
 	for _, file := range credsFiles {
+		pathDir := filepath.Dir(file)
 		credsContent, err := ioutil.ReadFile(file)
 		if err != nil {
 			return err
 		}
-		accountPubKeyContent, err := ioutil.ReadFile(fmt.Sprintf("%s.pub", file))
+		networkName := filepath.Base(strings.TrimSuffix(file, ".creds"))
+		accountPubKeyContent, err := ioutil.ReadFile(fmt.Sprintf("%s/%s.pub", pathDir, networkName))
 		if err != nil {
 			return err
 		}
-		networkName := filepath.Base(file)
 		creds := &api.Credentials{
-			Network:          strings.TrimSuffix(filepath.Base(file), ".creds"),
+			Network:          networkName,
 			Component:        c.component,
 			Creds:            string(credsContent),
 			AccountPublicKey: string(accountPubKeyContent),
