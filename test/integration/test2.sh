@@ -53,8 +53,9 @@ function test2_do {
 
     jwt1="myjwt1"
     nkey1="mynkey1"
-    add_credsfile ${TMP_DIR}/client1/nats-credentials/..data/secret ${TMP_DIR}/client1/nats-credentials/mynetwork ${jwt1} ${nkey1}
-    add_credsfile ${TMP_DIR}/client2/nats-credentials/..data/secret ${TMP_DIR}/client2/nats-credentials/mynetwork ${jwt1} ${nkey1}
+    accountPublicKey1="myaccountPublicKey1"
+    add_credsfile ${TMP_DIR}/client1/nats-credentials/..data/secret ${TMP_DIR}/client1/nats-credentials/mynetwork ${jwt1} ${nkey1} ${accountPublicKey1}
+    add_credsfile ${TMP_DIR}/client2/nats-credentials/..data/secret ${TMP_DIR}/client2/nats-credentials/mynetwork ${jwt1} ${nkey1} ${accountPublicKey1}
 
 
     rm nats-leafnode-sidecar-registry nats-leafnode-sidecar-client >& /dev/null
@@ -84,7 +85,11 @@ function test2_do {
     [[ $? -eq 0 ]] || TEST_FAILED=1
     assert_eq `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[0].url'` "tls://connect.ngs.global:7422" "remote url not equal"
     [[ $? -eq 0 ]] || TEST_FAILED=1
-    assert_contain `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[0].credentials'` "creds/mynetwork.creds" "remote credentials not equal"
+    assert_contain `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[0].credentials'` "creds/edgefarm-sys.creds" "remote credentials not equal"
+    [[ $? -eq 0 ]] || TEST_FAILED=1
+    assert_eq `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[1].url'` "tls://connect.ngs.global:7422" "remote url not equal"
+    [[ $? -eq 0 ]] || TEST_FAILED=1
+    assert_contain `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[1].credentials'` "creds/mynetwork.creds" "remote credentials not equal"
     [[ $? -eq 0 ]] || TEST_FAILED=1
     check_network_files ${TMP_DIR} mynetwork ${jwt1} ${nkey1}
     sleep 1
@@ -94,18 +99,23 @@ function test2_do {
     user_input
     jwt2="myjwt2"
     nkey2="mynkey2"
-    add_credsfile ${TMP_DIR}/client2/nats-credentials/..data/secret2 ${TMP_DIR}/client2/nats-credentials/mynetwork2 ${jwt2} ${nkey2}
+    accountPublicKey2="myaccountPublicKey2"
+    add_credsfile ${TMP_DIR}/client2/nats-credentials/..data/secret2 ${TMP_DIR}/client2/nats-credentials/mynetwork2 ${jwt2} ${nkey2} ${accountPublicKey2}
     sleep 1
     cat ${TMP_DIR}/config/nats.json
     assert_eq `cat ${TMP_DIR}/config/nats.json | jq -r '.http'` "8222" "http port not equal"
     [[ $? -eq 0 ]] || TEST_FAILED=1
     assert_eq `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[0].url'` "tls://connect.ngs.global:7422" "remote url not equal"
     [[ $? -eq 0 ]] || TEST_FAILED=1
-    assert_contain `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[0].credentials'` "creds/mynetwork.creds" "remote credentials not equal"
+    assert_contain `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[0].credentials'` "creds/edgefarm-sys.creds" "remote credentials not equal"
     [[ $? -eq 0 ]] || TEST_FAILED=1
     assert_eq `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[1].url'` "tls://connect.ngs.global:7422" "remote url not equal"
     [[ $? -eq 0 ]] || TEST_FAILED=1
-    assert_contain `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[1].credentials'` "creds/mynetwork2.creds" "remote credentials not equal"
+    assert_contain `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[1].credentials'` "creds/mynetwork.creds" "remote credentials not equal"
+    [[ $? -eq 0 ]] || TEST_FAILED=1
+    assert_eq `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[2].url'` "tls://connect.ngs.global:7422" "remote url not equal"
+    [[ $? -eq 0 ]] || TEST_FAILED=1
+    assert_contain `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[2].credentials'` "creds/mynetwork2.creds" "remote credentials not equal"
     [[ $? -eq 0 ]] || TEST_FAILED=1
     check_network_files ${TMP_DIR} mynetwork ${jwt1} ${nkey1}
     check_network_files ${TMP_DIR} mynetwork2 ${jwt2} ${nkey2}
@@ -119,11 +129,15 @@ function test2_do {
     [[ $? -eq 0 ]] || TEST_FAILED=1
     assert_eq `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[0].url'` "tls://connect.ngs.global:7422" "remote url not equal"
     [[ $? -eq 0 ]] || TEST_FAILED=1
-    assert_contain `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[0].credentials'` "creds/mynetwork.creds" "remote credentials not equal"
+    assert_contain `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[0].credentials'` "creds/edgefarm-sys.creds" "remote credentials not equal"
     [[ $? -eq 0 ]] || TEST_FAILED=1
     assert_eq `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[1].url'` "tls://connect.ngs.global:7422" "remote url not equal"
     [[ $? -eq 0 ]] || TEST_FAILED=1
-    assert_contain `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[1].credentials'` "creds/mynetwork2.creds" "remote credentials not equal"
+    assert_contain `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[01].credentials'` "creds/mynetwork.creds" "remote credentials not equal"
+    [[ $? -eq 0 ]] || TEST_FAILED=1
+    assert_eq `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[2].url'` "tls://connect.ngs.global:7422" "remote url not equal"
+    [[ $? -eq 0 ]] || TEST_FAILED=1
+    assert_contain `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[2].credentials'` "creds/mynetwork2.creds" "remote credentials not equal"
     [[ $? -eq 0 ]] || TEST_FAILED=1
     check_network_files ${TMP_DIR} mynetwork ${jwt1} ${nkey1}
     check_network_files ${TMP_DIR} mynetwork2 ${jwt2} ${nkey2}
@@ -137,7 +151,11 @@ function test2_do {
     [[ $? -eq 0 ]] || TEST_FAILED=1
     assert_eq `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[0].url'` "tls://connect.ngs.global:7422" "remote url not equal"
     [[ $? -eq 0 ]] || TEST_FAILED=1
-    assert_contain `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[0].credentials'` "creds/mynetwork2.creds" "remote credentials not equal"
+    assert_contain `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[0].credentials'` "creds/edgefarm-sys.creds" "remote credentials not equal"
+    [[ $? -eq 0 ]] || TEST_FAILED=1
+    assert_eq `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[1].url'` "tls://connect.ngs.global:7422" "remote url not equal"
+    [[ $? -eq 0 ]] || TEST_FAILED=1
+    assert_contain `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[1].credentials'` "creds/mynetwork2.creds" "remote credentials not equal"
     [[ $? -eq 0 ]] || TEST_FAILED=1
     check_network_files ${TMP_DIR} mynetwork2 ${jwt2} ${nkey2}
 
@@ -151,7 +169,10 @@ function test2_do {
     test2_cleanup_registry ${TMP_DIR} $registry_pid
     sleep 1
     cat ${TMP_DIR}/config/nats.json
-    assert_contain `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes'` "[]" "remote credentials not equal"
+    assert_eq `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[0].url'` "tls://connect.ngs.global:7422" "remote url not equal"
+    [[ $? -eq 0 ]] || TEST_FAILED=1
+    assert_contain `cat ${TMP_DIR}/config/nats.json | jq -r '.leafnodes.remotes[0].credentials'` "creds/edgefarm-sys.creds" "remote credentials not equal"
+    [[ $? -eq 0 ]] || TEST_FAILED=1
 
     test2_cleanup_tmpdir ${TMP_DIR}
 }

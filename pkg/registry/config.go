@@ -6,18 +6,17 @@ import (
 	"path/filepath"
 )
 
-// Config returns the current configuration as a JSON string
-func (r *Registry) Config() string {
-	return r.configFileContent
-}
-
 func (r *Registry) updateConfigFile() error {
 	file, err := os.Create(r.configFilePath)
 	if err != nil {
 		return err
 	}
 	defer file.Close()
-	_, err = file.WriteString(r.configFileContent)
+	j, err := r.config.ToJSON()
+	if err != nil {
+		return err
+	}
+	_, err = file.WriteString(j)
 	if err != nil {
 		return err
 	}

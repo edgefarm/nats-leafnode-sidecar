@@ -34,6 +34,13 @@ const (
 	connectTimeoutSeconds = 10
 )
 
+var (
+	// filter that tells the watcher which files to watch
+	watchFilesFilter = []string{".creds"}
+	// filter that is evaluated after `watchedFiles` to hide specific files in a second stage
+	ignoredFilesFilter = []string{"nats-sidecar.creds"}
+)
+
 // NatsCredentials contains the credentials for the nats server.
 type NatsCredentials struct {
 	Username         string `json:"username"`
@@ -59,6 +66,7 @@ type Client struct {
 // NewClient creates a new client for the registry service.
 func NewClient(credentialsMountDirectory string, natsURI string, component string) (*Client, error) {
 	opts := []nats.Option{nats.Timeout(time.Duration(1) * time.Second)}
+	opts = append(opts, nats.UserCredentials(common.CredentialsFile))
 	opts = common.SetupConnOptions(opts)
 	ncChan := make(chan *nats.Conn)
 	go func() {
@@ -113,21 +121,48 @@ func (c *Client) removeAll() error {
 	return c.action(Unregister())
 }
 
+func isIgnored(file string) bool {
+	for _, watchFile := range watchFilesFilter {
+		if !strings.Contains(file, watchFile) {
+			return true
+		}
+		for _, ignoredFile := range ignoredFilesFilter {
+			if strings.Contains(file, ignoredFile) {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 func (c *Client) action(option *RegistryOptions) error {
 	f, err := files.GetSymlinks(c.path)
 	if err != nil {
 		return err
 	}
-	for _, file := range f {
-		b, err := ioutil.ReadFile(file)
+	credsFiles := make([]string, 0)
+	for _, f := range f {
+		if !isIgnored(f) {
+			credsFiles = append(credsFiles, f)
+		}
+	}
+
+	for _, file := range credsFiles {
+		pathDir := filepath.Dir(file)
+		credsContent, err := ioutil.ReadFile(file)
 		if err != nil {
 			return err
 		}
-		networkName := filepath.Base(file)
+		networkName := filepath.Base(strings.TrimSuffix(file, ".creds"))
+		accountPubKeyContent, err := ioutil.ReadFile(fmt.Sprintf("%s/%s.pub", pathDir, networkName))
+		if err != nil {
+			return err
+		}
 		creds := &api.Credentials{
-			Network:   filepath.Base(file),
-			Component: c.component,
-			Creds:     string(b),
+			Network:          networkName,
+			Component:        c.component,
+			Creds:            string(credsContent),
+			AccountPublicKey: string(accountPubKeyContent),
 		}
 		fmt.Printf("%s network %s\n", option.subject, networkName)
 		err = c.Registry(option, creds)
@@ -158,11 +193,15 @@ func (c *Client) installWatch(path string, addCallback func() error, removeCallb
 		for {
 			select {
 			case event, ok := <-c.watcher.Events:
-				fmt.Println("c.Watcher.Events: ", event, ok)
 				if !ok {
 					return
 				}
-				log.Println("event:", event)
+				ignored := isIgnored(event.Name)
+				if ignored {
+					fmt.Println("Ignoring event: ", event)
+					continue
+				}
+				fmt.Println("event: ", event)
 				if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create {
 					log.Println("created/modified file:", event.Name)
 					err := addCallback()
@@ -177,7 +216,6 @@ func (c *Client) installWatch(path string, addCallback func() error, removeCallb
 						log.Println(err)
 					}
 				}
-
 			case err, ok := <-c.watcher.Errors:
 				fmt.Println("c.Watcher.Errors: ", err, ok)
 				if !ok {

@@ -9,4 +9,6 @@ const (
 	OkResponse = "ok"
 	// ErrorResponse is the response sent when a request is unsuccessful
 	ErrorResponse = "error"
+	// CredentialsFile is the name of the file containing the credentials
+	CredentialsFile = "/creds/nats-sidecar.creds"
 )
