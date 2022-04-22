@@ -159,6 +159,7 @@ func (c *Client) action(option *RegistryOptions) error {
 			return err
 		}
 		creds := &api.Credentials{
+			NatsAddress:      common.Remote,
 			Network:          networkName,
 			Component:        c.component,
 			Creds:            string(credsContent),

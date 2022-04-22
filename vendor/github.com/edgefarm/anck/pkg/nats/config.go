@@ -11,6 +11,7 @@ import (
 
 // Config is the configuration for the NATS server
 type Config struct {
+	Jetstream       *Jetstream     `json:"jetstream,omitempty"`
 	Authorization   *Authorization `json:"authorization,omitempty"`
 	PidFile         *string        `json:"pid_file,omitempty"`
 	HTTP            int            `json:"http"`
@@ -25,6 +26,12 @@ type Config struct {
 type User struct {
 	User     string `json:"user"`
 	Password string `json:"password"`
+}
+
+// Jetstream is the jetstream configuration for the NATS server
+type Jetstream struct {
+	StoreDir string `json:"store_dir"`
+	Domain   string `json:"domain"`
 }
 
 // Authorization is the authorization configuration
@@ -67,20 +74,24 @@ func WithPidFile(pidFile string) Option {
 	}
 }
 
+// WithJetstream enabled jetstream and sets the store dir and an domain
+func WithJetstream(storageDir string, domain string) Option {
+	return func(c *Config) {
+		if c.Jetstream == nil {
+			c.Jetstream = &Jetstream{}
+		}
+		c.Jetstream.StoreDir = storageDir
+		c.Jetstream.Domain = domain
+	}
+}
+
 // WithRemote sets a leafnode remote
 func WithRemote(url string, credentials string, accountPublicKey string) Option {
 	return func(c *Config) {
-		if c.Leafnodes == nil {
-			c.Leafnodes = &Leafnodes{}
+		err := c.AddRemote(url, credentials, accountPublicKey)
+		if err != nil {
+			panic(err)
 		}
-		if c.Leafnodes.Remotes == nil {
-			c.Leafnodes.Remotes = make([]Remotes, 0)
-		}
-		c.Leafnodes.Remotes = append(c.Leafnodes.Remotes, Remotes{
-			URL:         url,
-			Credentials: credentials,
-			Account:     accountPublicKey,
-		})
 	}
 }
 

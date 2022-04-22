@@ -2,6 +2,8 @@ package api
 
 // Credentials is used to store credentials, including the network and component
 type Credentials struct {
+	// Nats Address
+	NatsAddress string `json:"natsAddress"`
 	// Component is the network participant
 	Component string `json:"component"`
 	// Network is the network

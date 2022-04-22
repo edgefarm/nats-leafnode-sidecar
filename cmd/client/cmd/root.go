@@ -22,12 +22,12 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/edgefarm/nats-leafnode-sidecar/pkg/client"
+	"github.com/edgefarm/nats-leafnode-sidecar/pkg/common"
 	"github.com/spf13/cobra"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
-
-	client "github.com/edgefarm/nats-leafnode-sidecar/pkg/client"
 )
 
 var (
@@ -104,10 +104,14 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.client.yaml)")
-	rootCmd.PersistentFlags().StringVar(&natsURI, "natsuri", "nats://nats.nats:4222", "natsURI to connect to")
+	rootCmd.PersistentFlags().StringVar(&natsURI, "natsuri", "nats://leaf-nats.nats:4222", "Nats URI to connect to, e.g. https://nats.example.com:4222")
 	rootCmd.PersistentFlags().StringVar(&creds, "creds", "/nats-credentials", "path where to find the nats credentials")
 	rootCmd.PersistentFlags().StringVar(&component, "component", "", "name of the component this is the sidecar for")
-
+	rootCmd.PersistentFlags().StringVar(&common.Remote, "remote", "", "remote Nats URI to connect to, e.g. nats://nats.example.com:4222")
+	if common.Remote == "" {
+		log.Println("argument 'remote' is required")
+		os.Exit(1)
+	}
 }
 
 // initConfig reads in config file and ENV variables if set.
