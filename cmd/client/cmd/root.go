@@ -47,6 +47,11 @@ telling the registry about new edgefarm.network credentials for the
 component attached to.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		log.Println("client called")
+		log.Println("remote", common.Remote)
+		if common.Remote == "" {
+			log.Println("argument 'remote' is required")
+			os.Exit(1)
+		}
 		registryClient, err := client.NewClient(creds, natsURI, component)
 		if err != nil {
 			log.Println(err)
@@ -108,10 +113,6 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&creds, "creds", "/nats-credentials", "path where to find the nats credentials")
 	rootCmd.PersistentFlags().StringVar(&component, "component", "", "name of the component this is the sidecar for")
 	rootCmd.PersistentFlags().StringVar(&common.Remote, "remote", "", "remote Nats URI to connect to, e.g. nats://nats.example.com:4222")
-	if common.Remote == "" {
-		log.Println("argument 'remote' is required")
-		os.Exit(1)
-	}
 }
 
 // initConfig reads in config file and ENV variables if set.
