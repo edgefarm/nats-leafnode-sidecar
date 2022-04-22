@@ -96,7 +96,7 @@ func init() {
 	// will be global for your application.
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.registry.yaml)")
-	rootCmd.PersistentFlags().StringVar(&natsURI, "natsuri", "nats://nats.nats:4222", "natsURI to connect to")
+	rootCmd.PersistentFlags().StringVar(&natsURI, "natsuri", "nats://leaf-nats.nats:4222", "natsURI to connect to")
 	rootCmd.PersistentFlags().StringVar(&natsConfig, "natsconfig", "/config/nats.json", "path to nats config file")
 	rootCmd.PersistentFlags().StringVar(&creds, "creds", "/creds", "path where to find the nats credentials")
 	rootCmd.PersistentFlags().StringVar(&state, "state", "/state/state.json", "path where to find the file reflecting the current state")

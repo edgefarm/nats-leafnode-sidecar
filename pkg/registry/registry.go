@@ -16,7 +16,6 @@ import (
 
 const (
 	connectTimeoutSeconds = 10
-	ngsHost               = "tls://connect.ngs.global:7422"
 )
 
 // Registry is a registry for nats-leafnodes
@@ -88,7 +87,7 @@ func (r *Registry) Start() error {
 			log.Println("Error unmarshalling credentials: ", err)
 		}
 		fmt.Printf("Received register request for network: %s and component: %s\n", creds.Network, creds.Component)
-		err = r.addCredentials(creds.Network, creds.Component, creds.AccountPublicKey)
+		err = r.addCredentials(creds)
 		if err == nil {
 			err = r.natsConn.Publish(m.Reply, []byte(common.OkResponse))
 			if err != nil {
@@ -120,7 +119,7 @@ func (r *Registry) Start() error {
 		if err != nil {
 			log.Println("Error unmarshalling credentials: ", err)
 		}
-		deleteCredsfile, err := r.removeCredentials(creds.Network, creds.Component)
+		deleteCredsfile, err := r.removeCredentials(creds)
 		if err == nil {
 			err = r.natsConn.Publish(m.Reply, []byte(common.OkResponse))
 			if err != nil {
@@ -163,36 +162,36 @@ func (r *Registry) Shutdown() {
 	os.Exit(0)
 }
 
-func (r *Registry) addCredentials(network string, component string, accountPublicKey string) error {
+func (r *Registry) addCredentials(creds *api.Credentials) error {
 	found := false
 	for _, remote := range r.config.Leafnodes.Remotes {
 		networkName := filepath.Base(remote.Credentials)
-		if networkName == fmt.Sprintf("%s.creds", network) {
+		if networkName == fmt.Sprintf("%s.creds", creds.Network) {
 			found = true
 			break
 		}
 	}
 	if !found {
-		err := r.config.AddRemote(ngsHost, r.credsFile(network), accountPublicKey)
+		err := r.config.AddRemote(creds.NatsAddress, r.credsFile(creds.Network), creds.AccountPublicKey)
 		if err != nil {
 			return err
 		}
 	}
-	err := r.state.Update(network, component, Add)
+	err := r.state.Update(creds.Network, creds.Component, Add)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *Registry) removeCredentials(network string, component string) (bool, error) {
-	usage, err := r.state.Usage(network)
+func (r *Registry) removeCredentials(creds *api.Credentials) (bool, error) {
+	usage, err := r.state.Usage(creds.Network)
 	if err != nil {
 		return false, err
 	}
 	if usage > 0 {
-		fmt.Printf("Removing participant cound from network '%s'\n", network)
-		err = r.state.Update(network, component, Remove)
+		fmt.Printf("Removing participant cound from network '%s'\n", creds.Network)
+		err = r.state.Update(creds.Network, creds.Component, Remove)
 		if err != nil {
 			return false, err
 		}
@@ -200,7 +199,7 @@ func (r *Registry) removeCredentials(network string, component string) (bool, er
 	}
 	if usage <= 0 {
 		for _, remote := range r.config.Leafnodes.Remotes {
-			if remote.Credentials == r.credsFile(network) {
+			if remote.Credentials == r.credsFile(creds.Network) {
 				err = r.config.RemoveRemoteByCredsfile(remote.Credentials)
 				if err != nil {
 					return false, err
@@ -208,7 +207,7 @@ func (r *Registry) removeCredentials(network string, component string) (bool, er
 				break
 			}
 		}
-		err = r.state.Delete(network)
+		err = r.state.Delete(creds.Network)
 		if err != nil {
 			return false, err
 		}

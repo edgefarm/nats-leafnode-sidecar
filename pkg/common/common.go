@@ -12,3 +12,8 @@ const (
 	// CredentialsFile is the name of the file containing the credentials
 	CredentialsFile = "/creds/nats-sidecar.creds"
 )
+
+var (
+	// Remote is the address of the remote nats server
+	Remote string
+)
