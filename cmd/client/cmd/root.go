@@ -72,9 +72,7 @@ component attached to.`,
 				log.Printf("Trapped \"%v\" signal\n", sig)
 				switch sig {
 				case syscall.SIGINT:
-					fmt.Println("1")
 					registryClient.Shutdown()
-					fmt.Println("2")
 					exit <- true
 					return
 				case syscall.SIGTERM:
