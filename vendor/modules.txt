@@ -1,13 +1,13 @@
 # github.com/davecgh/go-spew v1.1.1
 ## explicit
 github.com/davecgh/go-spew/spew
-# github.com/edgefarm/anck v0.5.0-dev1
-## explicit; go 1.17
+# github.com/edgefarm/anck v0.5.1-dev1
+## explicit; go 1.18
 github.com/edgefarm/anck/pkg/common
 github.com/edgefarm/anck/pkg/grpc
 github.com/edgefarm/anck/pkg/nats
-# github.com/edgefarm/anck-credentials v0.7.0
-## explicit; go 1.17
+# github.com/edgefarm/anck-credentials v0.7.1
+## explicit; go 1.18
 github.com/edgefarm/anck-credentials/pkg/apis/config/v1alpha1
 # github.com/fsnotify/fsnotify v1.5.1
 ## explicit; go 1.13

@@ -48,6 +48,7 @@ message Credentials {
 message Network {
   string name = 1;
   string accoutPublicKey = 2;
+  string accountName = 3;
 }
 
 message DesiredStateResponse {

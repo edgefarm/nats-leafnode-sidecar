@@ -3,7 +3,7 @@ module github.com/edgefarm/nats-leafnode-sidecar
 go 1.18
 
 require (
-	github.com/edgefarm/anck v0.5.0-dev1
+	github.com/edgefarm/anck v0.5.1-dev1
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/nats-io/nats.go v1.13.1-0.20220216000616-0096b1bfae8d
@@ -14,7 +14,7 @@ require (
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/edgefarm/anck-credentials v0.7.0 // indirect
+	github.com/edgefarm/anck-credentials v0.7.1 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
 	github.com/hsson/once v1.0.1 // indirect
