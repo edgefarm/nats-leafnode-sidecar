@@ -74,10 +74,10 @@ github.com/cpuguy83/go-md2man/v2 v2.0.0/go.mod h1:maD7wRr/U5Z6m/iR4s+kqSMx2CaBsr
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/edgefarm/anck v0.5.0-dev1 h1:hvOenLcrd0kVYBQsOfecBSZvoSTFZM4T4YwPTrw77Gc=
-github.com/edgefarm/anck v0.5.0-dev1/go.mod h1:0y4TDi2ouObkSPLMLCcc6H5XmOcvyZCGMMTv9ro/QEQ=
-github.com/edgefarm/anck-credentials v0.7.0 h1:vQ3gB9j0aDotyAGLZgCGiXmn7uu6PX+GY6+ZywggN30=
-github.com/edgefarm/anck-credentials v0.7.0/go.mod h1:Z0/4CHmer+KS/cKyMmT0dWefzJeZHUo++Ny39nn6kUI=
+github.com/edgefarm/anck v0.5.1-dev1 h1:IBIOhCEzcKNIVXWiphSt7ia8Vh0iO8PnSyq/hyiTBds=
+github.com/edgefarm/anck v0.5.1-dev1/go.mod h1:q6GfJfJUxwqEfJpjogGtLdomWmj5IdVqIPMjqswEwMg=
+github.com/edgefarm/anck-credentials v0.7.1 h1:9kk4kZapDHMHbZaEucLG2CoIMHa/o/Z08LLzcLAttns=
+github.com/edgefarm/anck-credentials v0.7.1/go.mod h1:olpRAyE2tpAns3YBwtUHtFEBe5/tuTzKNZ0ZP+hPG/Y=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.4/go.mod h1:6rpuAdCZL397s3pYoYcLgu1mIlRU8Am5FuJP05cCM98=

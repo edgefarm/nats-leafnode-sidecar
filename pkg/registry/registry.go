@@ -172,7 +172,7 @@ func (r *Registry) addCredentials(creds *api.Credentials) error {
 		}
 	}
 	if !found {
-		err := r.config.AddRemote(creds.NatsAddress, r.credsFile(creds.Network), creds.AccountPublicKey)
+		err := r.config.AddRemote(creds.NatsAddress, r.credsFile(creds.Network), creds.AccountPublicKey, []string{"local.>"}, []string{"local.>"})
 		if err != nil {
 			return err
 		}

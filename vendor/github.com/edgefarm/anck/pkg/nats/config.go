@@ -47,6 +47,10 @@ type Remotes struct {
 	Credentials string `json:"credentials"`
 	// Account public key
 	Account string `json:"account"`
+	// DenyImports is a list of subjects to deny imports for
+	DenyImports []string `json:"deny_imports,omitempty"`
+	// DenyExports is a list of subjects to deny exports for
+	DenyExports []string `json:"deny_exports,omitempty"`
 }
 
 // Leafnodes is the leafnode configuration part
@@ -86,9 +90,9 @@ func WithJetstream(storageDir string, domain string) Option {
 }
 
 // WithRemote sets a leafnode remote
-func WithRemote(url string, credentials string, accountPublicKey string) Option {
+func WithRemote(url string, credentials string, accountPublicKey string, denyImports []string, denyExports []string) Option {
 	return func(c *Config) {
-		err := c.AddRemote(url, credentials, accountPublicKey)
+		err := c.AddRemote(url, credentials, accountPublicKey, denyImports, denyExports)
 		if err != nil {
 			panic(err)
 		}
@@ -96,8 +100,8 @@ func WithRemote(url string, credentials string, accountPublicKey string) Option 
 }
 
 // WithNGSRemote sets a leafnode remote to NGS
-func WithNGSRemote(credentials string, accountPublicKey string) Option {
-	return WithRemote("tls://connect.ngs.global:7422", credentials, accountPublicKey)
+func WithNGSRemote(credentials string, accountPublicKey string, denyImports []string, denyExports []string) Option {
+	return WithRemote("tls://connect.ngs.global:7422", credentials, accountPublicKey, denyImports, denyExports)
 }
 
 // WithFullResolver sets a full resolver (used for nats account servers)
@@ -235,12 +239,12 @@ func LoadFromJSON(j string) (*Config, error) {
 }
 
 // AddNGSRemote adds a NGS remote to the config
-func (c *Config) AddNGSRemote(credentials string, accountPublicKey string) error {
-	return c.AddRemote("tls://connect.ngs.global:7422", credentials, accountPublicKey)
+func (c *Config) AddNGSRemote(credentials string, accountPublicKey string, denyImports []string, denyExports []string) error {
+	return c.AddRemote("tls://connect.ngs.global:7422", credentials, accountPublicKey, denyImports, denyExports)
 }
 
 // AddRemote adds a remote to the configs
-func (c *Config) AddRemote(url string, credentials string, accountPublicKey string) error {
+func (c *Config) AddRemote(url string, credentials string, accountPublicKey string, denyImports []string, denyExports []string) error {
 	if c.Leafnodes == nil {
 		c.Leafnodes = &Leafnodes{}
 	}
@@ -251,6 +255,8 @@ func (c *Config) AddRemote(url string, credentials string, accountPublicKey stri
 		URL:         url,
 		Credentials: credentials,
 		Account:     accountPublicKey,
+		DenyImports: denyImports,
+		DenyExports: denyExports,
 	})
 	return nil
 }
