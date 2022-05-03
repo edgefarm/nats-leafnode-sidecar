@@ -1,6 +1,7 @@
 package nats
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -210,12 +211,16 @@ func NewConfig(opts ...Option) *Config {
 
 // ToJSON converts a Config instance to Json
 func (c *Config) ToJSON() (string, error) {
-	json, err := json.Marshal(*c)
+	// cannot use json.Marshal(*c) here because it escapes '>' and '<'
+	bf := bytes.NewBuffer([]byte{})
+	jsonEncoder := json.NewEncoder(bf)
+	jsonEncoder.SetEscapeHTML(false)
+	err := jsonEncoder.Encode(*c)
 	if err != nil {
 		return "", err
 	}
 
-	return string(pretty.Pretty(json)), nil
+	return string(pretty.Pretty(bf.Bytes())), nil
 }
 
 // LoadFromFile loads a config ftom a JSON file
