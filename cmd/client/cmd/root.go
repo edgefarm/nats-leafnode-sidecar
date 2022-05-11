@@ -74,7 +74,6 @@ component attached to.`,
 				case syscall.SIGINT:
 					fallthrough
 				case syscall.SIGTERM:
-					registryClient.WaitForStreamsDeletion()
 					registryClient.Shutdown()
 					exit <- true
 					return

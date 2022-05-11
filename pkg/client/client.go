@@ -19,13 +19,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 
-	"github.com/edgefarm/anck/pkg/jetstreams"
 	api "github.com/edgefarm/nats-leafnode-sidecar/pkg/api"
 	common "github.com/edgefarm/nats-leafnode-sidecar/pkg/common"
 	"github.com/edgefarm/nats-leafnode-sidecar/pkg/files"
@@ -287,50 +284,6 @@ func (c *Client) loop() {
 			time.Sleep(time.Second * 1)
 		}
 	}
-}
-
-// WaitForStreamsDeletion blocks until all the streams are deleted.
-func (c *Client) WaitForStreamsDeletion() {
-	domain, err := os.Hostname()
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	log.Println("Waiting for streams deletion before shutting down")
-	credsFiles, err := c.getCredsFiles()
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	wg := sync.WaitGroup{}
-	wg.Add(len(credsFiles))
-	for _, creds := range credsFiles {
-		go func(domain string, creds string) {
-			js, err := jetstreams.NewJetstreamControllerWithAddress(creds, c.natsURI)
-			if err != nil {
-				log.Println(err)
-			}
-			for {
-				streams, err := js.ListNames(domain)
-				if err != nil {
-					log.Println(err)
-					wg.Done()
-					return
-				}
-				if len(streams) > 0 {
-					fmt.Println("Found streams: ", streams)
-					fmt.Println("Waiting for deletion...")
-				} else {
-					fmt.Println("No streams found. Done...")
-					wg.Done()
-					return
-				}
-				time.Sleep(time.Second * 1)
-			}
-
-		}(domain, creds)
-	}
-	wg.Wait()
 }
 
 // Shutdown unregisteres the application and shuts down the nats connection.

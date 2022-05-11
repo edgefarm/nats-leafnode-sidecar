@@ -6,8 +6,10 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
+	"github.com/edgefarm/anck/pkg/jetstreams"
 	natsConfig "github.com/edgefarm/anck/pkg/nats"
 	api "github.com/edgefarm/nats-leafnode-sidecar/pkg/api"
 	"github.com/edgefarm/nats-leafnode-sidecar/pkg/common"
@@ -182,6 +184,52 @@ func (r *Registry) addCredentials(creds *api.Credentials) error {
 		return err
 	}
 	return nil
+}
+
+// waitForStreamsDeletion blocks until all the streams are deleted.
+func (r *Registry) waitForStreamsDeletion(creds string) {
+	domain, err := os.Hostname()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	log.Println("Waiting for streams deletion before shutting down")
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func(domain string, creds string) {
+		js, err := jetstreams.NewJetstreamControllerWithAddress(creds, "nats://localhost:4222")
+		if err != nil {
+			log.Println(err)
+		}
+		maxRetries := 60
+		retries := 0
+		for {
+			streams, err := js.ListNames(domain)
+			if err != nil {
+				log.Println(err)
+				wg.Done()
+				return
+			}
+			if len(streams) > 0 {
+				fmt.Println("Found streams: ", streams)
+				fmt.Println("Waiting for deletion...")
+			} else {
+				fmt.Println("No streams found. Done...")
+				wg.Done()
+				return
+			}
+			time.Sleep(time.Second * 1)
+			retries++
+			if retries > maxRetries {
+				log.Println("Max retries reached. Done...")
+				wg.Done()
+				return
+			}
+		}
+
+	}(domain, creds)
+	wg.Wait()
 }
 
 func (r *Registry) removeCredentials(creds *api.Credentials) (bool, error) {
