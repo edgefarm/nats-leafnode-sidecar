@@ -10,7 +10,7 @@ github.com/davecgh/go-spew/spew
 # github.com/dustin/go-humanize v1.0.0
 ## explicit
 github.com/dustin/go-humanize
-# github.com/edgefarm/anck v0.5.3-0.20220511110747-3c38196c6bd9
+# github.com/edgefarm/anck v0.5.3-0.20220513055210-b1a34996e074
 ## explicit; go 1.18
 github.com/edgefarm/anck/apis/network/v1alpha1
 github.com/edgefarm/anck/pkg/common

@@ -120,8 +120,8 @@ github.com/dgryski/go-sip13 v0.0.0-20181026042036-e10d5fee7954/go.mod h1:vAd38F8
 github.com/docopt/docopt-go v0.0.0-20180111231733-ee0de3bc6815/go.mod h1:WwZ+bS3ebgob9U8Nd0kOddGdZWjyMGR8Wziv+TBNwSE=
 github.com/dustin/go-humanize v1.0.0 h1:VSnTsYCnlFHaM2/igO1h6X3HA71jcobQuxemgkq4zYo=
 github.com/dustin/go-humanize v1.0.0/go.mod h1:HtrtbFcZ19U5GC7JDqmcUSB87Iq5E25KnS6fMYU6eOk=
-github.com/edgefarm/anck v0.5.3-0.20220511110747-3c38196c6bd9 h1:7lUrgWQ2joPPnvUw4wLR95m/NUElF8FLoj17P75TEPU=
-github.com/edgefarm/anck v0.5.3-0.20220511110747-3c38196c6bd9/go.mod h1:q6GfJfJUxwqEfJpjogGtLdomWmj5IdVqIPMjqswEwMg=
+github.com/edgefarm/anck v0.5.3-0.20220513055210-b1a34996e074 h1:ZJL8PUGcTxnzYBzFh/+t/ghDWSA8EtoqSOa2jzKhdts=
+github.com/edgefarm/anck v0.5.3-0.20220513055210-b1a34996e074/go.mod h1:q6GfJfJUxwqEfJpjogGtLdomWmj5IdVqIPMjqswEwMg=
 github.com/edgefarm/anck-credentials v0.7.1 h1:9kk4kZapDHMHbZaEucLG2CoIMHa/o/Z08LLzcLAttns=
 github.com/edgefarm/anck-credentials v0.7.1/go.mod h1:olpRAyE2tpAns3YBwtUHtFEBe5/tuTzKNZ0ZP+hPG/Y=
 github.com/elazarl/goproxy v0.0.0-20180725130230-947c36da3153/go.mod h1:/Zj4wYkgs4iZTTu3o/KG3Itv/qCCa8VVMlb3i9OVuzc=
