@@ -19,10 +19,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
+	"github.com/edgefarm/anck/pkg/jetstreams"
 	api "github.com/edgefarm/nats-leafnode-sidecar/pkg/api"
 	common "github.com/edgefarm/nats-leafnode-sidecar/pkg/common"
 	"github.com/edgefarm/nats-leafnode-sidecar/pkg/files"
@@ -61,6 +64,8 @@ type Client struct {
 	finish chan interface{}
 	// finishWatch is a channel to signal the watch loop to finish
 	finishWatch chan interface{}
+	// natsURI is the nats uri to connect to.
+	natsURI string
 }
 
 // NewClient creates a new client for the registry service.
@@ -104,6 +109,7 @@ func NewClient(credentialsMountDirectory string, natsURI string, component strin
 		watcher:     watcher,
 		finish:      make(chan interface{}),
 		finishWatch: make(chan interface{}),
+		natsURI:     natsURI,
 	}, nil
 }
 
@@ -135,16 +141,24 @@ func isIgnored(file string) bool {
 	return false
 }
 
-func (c *Client) action(option *RegistryOptions) error {
+func (c *Client) getCredsFiles() ([]string, error) {
 	f, err := files.GetSymlinks(c.path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	credsFiles := make([]string, 0)
 	for _, f := range f {
 		if !isIgnored(f) {
 			credsFiles = append(credsFiles, f)
 		}
+	}
+	return credsFiles, nil
+}
+
+func (c *Client) action(option *RegistryOptions) error {
+	credsFiles, err := c.getCredsFiles()
+	if err != nil {
+		return err
 	}
 
 	for _, file := range credsFiles {
@@ -273,6 +287,50 @@ func (c *Client) loop() {
 			time.Sleep(time.Second * 1)
 		}
 	}
+}
+
+// WaitForStreamsDeletion blocks until all the streams are deleted.
+func (c *Client) WaitForStreamsDeletion() {
+	domain, err := os.Hostname()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	log.Println("Waiting for streams deletion before shutting down")
+	credsFiles, err := c.getCredsFiles()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(len(credsFiles))
+	for _, creds := range credsFiles {
+		go func(domain string, creds string) {
+			js, err := jetstreams.NewJetstreamControllerWithAddress(creds, c.natsURI)
+			if err != nil {
+				log.Println(err)
+			}
+			for {
+				streams, err := js.ListNames(domain)
+				if err != nil {
+					log.Println(err)
+					wg.Done()
+					return
+				}
+				if len(streams) > 0 {
+					fmt.Println("Found streams: ", streams)
+					fmt.Println("Waiting for deletion...")
+				} else {
+					fmt.Println("No streams found. Done...")
+					wg.Done()
+					return
+				}
+				time.Sleep(time.Second * 1)
+			}
+
+		}(domain, creds)
+	}
+	wg.Wait()
 }
 
 // Shutdown unregisteres the application and shuts down the nats connection.

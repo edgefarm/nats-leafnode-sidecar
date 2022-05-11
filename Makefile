@@ -14,7 +14,16 @@ client: tidy test ## build the client
 registry: tidy test ## build the registry
 	GOOS=linux go build $(GO_LDFLAGS) -o ${BIN_DIR}/registry cmd/registry/main.go
 
-build: test client registry ## build all
+
+client-arm64: tidy test ## build the client for arm64
+	GOARCH=arm64 GOOS=linux go build $(GO_LDFLAGS) -o ${BIN_DIR}/client-arm64 cmd/client/main.go
+
+registry-arm64: tidy test ## build the registry for arm64
+	GOARCH=arm64 GOOS=linux go build $(GO_LDFLAGS) -o ${BIN_DIR}/registry-arm64 cmd/registry/main.go
+
+
+build: test client registry ## build all for amd64
+build-arm64: test client-arm64 registry-arm64 ## build all for arm64
 
 
 test-all: test integration-test ## run all tests
