@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 
 	"github.com/edgefarm/nats-leafnode-sidecar/pkg/unique"
@@ -34,7 +35,7 @@ func NewState(path string) *State {
 	}
 
 	if err := state.Read(); err != nil {
-		fmt.Println("State file not found, creating empty state")
+		log.Println("State file not found, creating empty state")
 		err = state.createEmpty()
 		if err != nil {
 			panic(err)
@@ -65,7 +66,7 @@ func (s *State) Save() error {
 func (s *State) Read() error {
 	data, err := ioutil.ReadFile(s.Path)
 	if err != nil {
-		fmt.Print(err)
+		log.Print(err)
 	}
 	err = json.Unmarshal(data, &s.Current)
 	if err != nil {
@@ -88,7 +89,7 @@ const (
 func (s *State) Update(network string, component string, action UpdateAction) error {
 	if action == Add {
 		if _, ok := s.Current.NetworkUsage[network]; !ok {
-			fmt.Printf("network %s not found. Creating...", network)
+			log.Printf("network %s not found. Creating...\n", network)
 		}
 		// ignore multiple registrations for components
 		s.Current.NetworkUsage[network] = unique.Slice(append(s.Current.NetworkUsage[network], component))

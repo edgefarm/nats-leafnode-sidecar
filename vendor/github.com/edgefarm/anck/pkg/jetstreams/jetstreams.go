@@ -17,6 +17,7 @@ import (
 	"os"
 
 	networkv1alpha1 "github.com/edgefarm/anck/apis/network/v1alpha1"
+	"github.com/edgefarm/anck/pkg/common"
 	edgefarmNats "github.com/edgefarm/anck/pkg/nats"
 	"github.com/nats-io/nats.go"
 )
@@ -95,6 +96,26 @@ func (j *JetstreamController) Exists(domain string, streamName string) (bool, er
 	return false, nil
 }
 
+// ListNamesNoDomain returns the names of all the jetstream streams without any domain
+func (j *JetstreamController) ListNamesNoDomain() ([]string, error) {
+	nc, err := nats.Connect(j.natsServerAddress, nats.UserCredentials(j.credsFile))
+	if err != nil {
+		return nil, err
+	}
+	defer nc.Close()
+
+	mgr, err := jsm.New(nc)
+	if err != nil {
+		return nil, err
+	}
+
+	streams, err := mgr.StreamNames(&jsm.StreamNamesFilter{})
+	if err != nil {
+		return nil, err
+	}
+	return streams, nil
+}
+
 // ListNames returns the names of all the jetstream streams
 func (j *JetstreamController) ListNames(domain string) ([]string, error) {
 	nc, err := nats.Connect(j.natsServerAddress, nats.UserCredentials(j.credsFile))
@@ -146,13 +167,44 @@ func (j *JetstreamController) UpdateSources(domain string, streamName string, ne
 	if err != nil {
 		return err
 	}
-	upstreamConfig.Sources = newSources
-	err = sourceStream.UpdateConfiguration(upstreamConfig)
-	if err != nil {
-		return err
+
+	upstreamSourcesRaw := convertSliceOfPointers(upstreamConfig.Sources)
+	newSourcesRaw := convertSliceOfPointers(newSources)
+	fmt.Printf("%+v\n", upstreamSourcesRaw)
+	fmt.Printf("%+v\n", newSourcesRaw)
+
+	if !common.SliceEqual(upstreamSourcesRaw, newSourcesRaw) {
+		upstreamConfig.Sources = newSources
+		err = sourceStream.UpdateConfiguration(upstreamConfig)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 
+}
+
+// myStreamSource is a type that represents a jetstream stream source with no pointers for deep comparison
+type myStreamSource struct {
+	Name          string                `json:"name"`
+	OptStartSeq   uint64                `json:"opt_start_seq,omitempty"`
+	OptStartTime  time.Time             `json:"opt_start_time,omitempty"`
+	FilterSubject string                `json:"filter_subject,omitempty"`
+	External      jsmapi.ExternalStream `json:"external,omitempty"`
+}
+
+func convertSliceOfPointers(in []*jsmapi.StreamSource) []myStreamSource {
+	var out []myStreamSource
+	for _, i := range in {
+		out = append(out, myStreamSource{
+			Name:          i.Name,
+			OptStartSeq:   i.OptStartSeq,
+			OptStartTime:  *i.OptStartTime,
+			FilterSubject: i.FilterSubject,
+			External:      *i.External,
+		})
+	}
+	return out
 }
 
 // Get returns the jetstream stream for a given domain
@@ -235,31 +287,39 @@ func (j *JetstreamController) CreateAggregate(domain string, network *networkv1a
 	cfg.Name = targetStreamName
 	jetstreamLog.Info("creating aggregated stream", "domain", domain, "name", cfg.Name, "network", network.Name)
 
-	// First check if update is working. If not, create it.
-	err = j.UpdateSources(domain, targetStreamName, cfg.Sources)
+	exists, err := j.Exists(domain, targetStreamName)
 	if err != nil {
-		if !jsm.IsNatsError(err, 10059) {
-			return err
+		return err
+	}
+
+	if exists {
+		// First check if update is working. If not, create it.
+		err = j.UpdateSources(domain, targetStreamName, cfg.Sources)
+		if err != nil {
+			if !jsm.IsNatsError(err, 10059) {
+				return err
+			}
+		}
+	} else {
+		if len(cfg.Sources) > 0 {
+			// stream does not exist. Create it
+			nc, err := nats.Connect(j.natsServerAddress, nats.UserCredentials(j.credsFile))
+			if err != nil {
+				return err
+			}
+			defer nc.Close()
+
+			opt := []jsm.Option{jsm.WithDomain(domain)}
+			mgr, err := jsm.New(nc, opt...)
+			if err != nil {
+				return err
+			}
+			_, err = mgr.LoadOrNewStreamFromDefault(targetStreamName, *cfg)
+			if err != nil {
+				return err
+			}
 		}
 	}
-
-	// stream does not exist. Create it
-	nc, err := nats.Connect(j.natsServerAddress, nats.UserCredentials(j.credsFile))
-	if err != nil {
-		return err
-	}
-	defer nc.Close()
-
-	opt := []jsm.Option{jsm.WithDomain(domain)}
-	mgr, err := jsm.New(nc, opt...)
-	if err != nil {
-		return err
-	}
-	_, err = mgr.LoadOrNewStreamFromDefault(targetStreamName, *cfg)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -308,6 +368,38 @@ func (j *JetstreamController) CreateMirror(domain string, sourceDomain string, n
 		return err
 	}
 
+	return nil
+}
+
+// DeleteNoDomain deletes a jetstream stream with no domain
+func (j *JetstreamController) DeleteNoDomain(network string, names []string) error {
+	nc, err := nats.Connect(j.natsServerAddress, nats.UserCredentials(j.credsFile))
+	if err != nil {
+		return err
+	}
+	defer nc.Close()
+
+	mgr, err := jsm.New(nc)
+	if err != nil {
+		return err
+	}
+
+	streams, err := mgr.Streams()
+	if err != nil {
+		return err
+	}
+	errors := false
+	for _, stream := range streams {
+		jetstreamLog.Info("deleting stream", "name", stream.Name(), "network", network)
+		err = stream.Delete()
+		if err != nil {
+			fmt.Println("error deleting stream:", err)
+			errors = true
+		}
+	}
+	if errors {
+		return fmt.Errorf("error deleting streams")
+	}
 	return nil
 }
 

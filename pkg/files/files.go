@@ -16,7 +16,7 @@ limitations under the License.
 package files
 
 import (
-	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strings"
@@ -27,7 +27,7 @@ func GetFiles(dir string) ([]string, error) {
 	var files []string
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			return nil
 		}
 		// filter out not visible files
@@ -50,7 +50,7 @@ func GetSymlinks(dir string) ([]string, error) {
 	var files []string
 	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			return nil
 		}
 		// filter out not visible files

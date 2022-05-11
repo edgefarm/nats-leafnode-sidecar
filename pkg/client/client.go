@@ -61,6 +61,8 @@ type Client struct {
 	finish chan interface{}
 	// finishWatch is a channel to signal the watch loop to finish
 	finishWatch chan interface{}
+	// natsURI is the nats uri to connect to.
+	natsURI string
 }
 
 // NewClient creates a new client for the registry service.
@@ -104,6 +106,7 @@ func NewClient(credentialsMountDirectory string, natsURI string, component strin
 		watcher:     watcher,
 		finish:      make(chan interface{}),
 		finishWatch: make(chan interface{}),
+		natsURI:     natsURI,
 	}, nil
 }
 
@@ -173,7 +176,7 @@ func (c *Client) action(option *RegistryOptions) error {
 			Creds:            string(credsContent),
 			AccountPublicKey: string(accountPubKeyContent),
 		}
-		fmt.Printf("%s network %s\n", option.subject, networkName)
+		log.Printf("%s network %s\n", option.subject, networkName)
 		err = c.Registry(option, creds)
 		if err != nil {
 			return err
@@ -189,7 +192,7 @@ func (c *Client) remove(networkPath string) error {
 		Network:   network,
 		Component: c.component,
 	}
-	fmt.Printf("Unregistering network %s\n", network)
+	log.Printf("Unregistering network %s\n", network)
 	err := c.Registry(Unregister(), creds)
 	if err != nil {
 		return err
@@ -207,10 +210,10 @@ func (c *Client) installWatch(path string, addCallback func() error, removeCallb
 				}
 				ignored := isIgnored(event.Name)
 				if ignored {
-					fmt.Println("Ignoring event: ", event)
+					log.Println("Ignoring event: ", event)
 					continue
 				}
-				fmt.Println("event: ", event)
+				log.Println("event: ", event)
 				if event.Op&fsnotify.Write == fsnotify.Write || event.Op&fsnotify.Create == fsnotify.Create {
 					log.Println("created/modified file:", event.Name)
 					err := addCallback()
@@ -226,14 +229,14 @@ func (c *Client) installWatch(path string, addCallback func() error, removeCallb
 					}
 				}
 			case err, ok := <-c.watcher.Errors:
-				fmt.Println("c.Watcher.Errors: ", err, ok)
+				log.Println("c.Watcher.Errors: ", err, ok)
 				if !ok {
 					return
 				}
 				log.Println("error:", err)
 
 			case <-c.finishWatch:
-				fmt.Println("Stopping watcher")
+				log.Println("Stopping watcher")
 				c.watcher.Close()
 				return
 
@@ -275,7 +278,7 @@ func (c *Client) loop() {
 	for {
 		select {
 		case <-c.finish:
-			fmt.Println("Stopping loop")
+			log.Println("Stopping loop")
 			return
 		default:
 			time.Sleep(time.Second * 1)
@@ -288,7 +291,7 @@ func (c *Client) Shutdown() {
 	log.Println("Shutting down client")
 	err := c.removeAll()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 	c.finishWatch <- true
 	c.finish <- true

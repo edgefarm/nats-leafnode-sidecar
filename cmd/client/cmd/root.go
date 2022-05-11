@@ -16,7 +16,6 @@ limitations under the License.
 package cmd
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"os/signal"
@@ -82,7 +81,7 @@ component attached to.`,
 		}()
 
 		<-exit
-		fmt.Println("Goodbye")
+		log.Println("Goodbye")
 		os.Exit(0)
 
 	},

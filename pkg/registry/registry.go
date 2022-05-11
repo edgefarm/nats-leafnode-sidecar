@@ -6,7 +6,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
 
 	"github.com/edgefarm/anck/pkg/jetstreams"
@@ -89,7 +88,7 @@ func (r *Registry) Start() error {
 		if err != nil {
 			log.Println("Error unmarshalling credentials: ", err)
 		}
-		fmt.Printf("Received register request for network: %s and component: %s\n", creds.Network, creds.Component)
+		log.Printf("Received register request for network: %s and component: %s\n", creds.Network, creds.Component)
 		err = r.addCredentials(creds)
 		if err == nil {
 			err = r.natsConn.Publish(m.Reply, []byte(common.OkResponse))
@@ -188,51 +187,27 @@ func (r *Registry) addCredentials(creds *api.Credentials) error {
 }
 
 // waitForStreamsDeletion blocks until all the streams are deleted.
-func (r *Registry) waitForStreamsDeletion(creds *api.Credentials) {
-	domain, err := os.Hostname()
+func (r *Registry) waitForStreamsDeletion(creds *api.Credentials) error {
+	log.Printf("Waiting for streams deletion for network '%s' before leafnode disconnect\n", creds.Network)
+	js, err := jetstreams.NewJetstreamControllerWithAddress(creds.Creds, r.natsURI)
 	if err != nil {
-		log.Fatalln(err)
+		return err
 	}
 
-	log.Printf("Waiting for streams deletion for network '%s' before shutting down\n", creds.Network)
+	streams, err := js.ListNamesNoDomain()
+	if err != nil {
+		return err
+	}
+	log.Printf("Deleting streams for network '%s':\n", creds.Network)
+	for _, stream := range streams {
+		log.Printf("\t- %s\n", stream)
+	}
+	err = js.DeleteNoDomain(creds.Network, streams)
+	if err != nil {
+		return err
+	}
 
-	wg := sync.WaitGroup{}
-	wg.Add(1)
-	go func(domain string, creds string, network string) {
-		js, err := jetstreams.NewJetstreamControllerWithAddress(creds, r.natsURI)
-		if err != nil {
-			log.Println(err)
-		}
-		maxRetries := 60
-		retries := 0
-		for {
-			streams, err := js.ListNames(domain)
-			if err != nil {
-				log.Println(err)
-				wg.Done()
-				return
-			}
-			if len(streams) > 0 {
-				fmt.Printf("Found: network: '%s', streams:\n", network)
-				for _, stream := range streams {
-					fmt.Printf("\t- %s\n", stream)
-				}
-				fmt.Println("Waiting for deletion...")
-			} else {
-				fmt.Printf("No streams found for network '%s'. Done...\n", network)
-				wg.Done()
-				return
-			}
-			time.Sleep(time.Second * 1)
-			retries++
-			if retries > maxRetries {
-				log.Println("Max retries reached. Done...")
-				wg.Done()
-				return
-			}
-		}
-	}(domain, creds.Creds, creds.Network)
-	wg.Wait()
+	return nil
 }
 
 func (r *Registry) removeCredentials(creds *api.Credentials) (bool, error) {
@@ -241,7 +216,7 @@ func (r *Registry) removeCredentials(creds *api.Credentials) (bool, error) {
 		return false, err
 	}
 	if usage > 0 {
-		fmt.Printf("Removing participant cound from network '%s'\n", creds.Network)
+		log.Printf("Removing participant count from network '%s'\n", creds.Network)
 		err = r.state.Update(creds.Network, creds.Component, Remove)
 		if err != nil {
 			return false, err
