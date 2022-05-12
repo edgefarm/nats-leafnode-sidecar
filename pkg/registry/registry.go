@@ -6,8 +6,10 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 	"time"
 
+	"github.com/edgefarm/anck/pkg/jetstreams"
 	natsConfig "github.com/edgefarm/anck/pkg/nats"
 	api "github.com/edgefarm/nats-leafnode-sidecar/pkg/api"
 	"github.com/edgefarm/nats-leafnode-sidecar/pkg/common"
@@ -20,7 +22,6 @@ const (
 
 // Registry is a registry for nats-leafnodes
 type Registry struct {
-	// configFileContent      string
 	credsFilesPath         string
 	configFilePath         string
 	natsConn               *nats.Conn
@@ -28,6 +29,7 @@ type Registry struct {
 	unregisterSubscription *nats.Subscription
 	state                  *State
 	config                 *natsConfig.Config
+	natsURI                string
 }
 
 // NewRegistry creates a new registry
@@ -69,6 +71,7 @@ func NewRegistry(natsConfigPath string, creds string, natsURI string, state stri
 		natsConn:       nc,
 		state:          NewState(state),
 		config:         config,
+		natsURI:        natsURI,
 	}
 	err = r.updateConfigFile()
 	if err != nil {
@@ -184,6 +187,54 @@ func (r *Registry) addCredentials(creds *api.Credentials) error {
 	return nil
 }
 
+// waitForStreamsDeletion blocks until all the streams are deleted.
+func (r *Registry) waitForStreamsDeletion(creds *api.Credentials) {
+	domain, err := os.Hostname()
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	log.Printf("Waiting for streams deletion for network '%s' before shutting down\n", creds.Network)
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func(domain string, creds string, network string) {
+		js, err := jetstreams.NewJetstreamControllerWithAddress(creds, r.natsURI)
+		if err != nil {
+			log.Println(err)
+		}
+		maxRetries := 60
+		retries := 0
+		for {
+			streams, err := js.ListNames(domain)
+			if err != nil {
+				log.Println(err)
+				wg.Done()
+				return
+			}
+			if len(streams) > 0 {
+				fmt.Printf("Found: network: '%s', streams:\n", network)
+				for _, stream := range streams {
+					fmt.Printf("\t- %s\n", stream)
+				}
+				fmt.Println("Waiting for deletion...")
+			} else {
+				fmt.Printf("No streams found for network '%s'. Done...\n", network)
+				wg.Done()
+				return
+			}
+			time.Sleep(time.Second * 1)
+			retries++
+			if retries > maxRetries {
+				log.Println("Max retries reached. Done...")
+				wg.Done()
+				return
+			}
+		}
+	}(domain, creds.Creds, creds.Network)
+	wg.Wait()
+}
+
 func (r *Registry) removeCredentials(creds *api.Credentials) (bool, error) {
 	usage, err := r.state.Usage(creds.Network)
 	if err != nil {
@@ -198,6 +249,7 @@ func (r *Registry) removeCredentials(creds *api.Credentials) (bool, error) {
 		usage--
 	}
 	if usage <= 0 {
+		r.waitForStreamsDeletion(creds)
 		for _, remote := range r.config.Leafnodes.Remotes {
 			if remote.Credentials == r.credsFile(creds.Network) {
 				err = r.config.RemoveRemoteByCredsfile(remote.Credentials)

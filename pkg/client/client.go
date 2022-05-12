@@ -135,16 +135,24 @@ func isIgnored(file string) bool {
 	return false
 }
 
-func (c *Client) action(option *RegistryOptions) error {
+func (c *Client) getCredsFiles() ([]string, error) {
 	f, err := files.GetSymlinks(c.path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	credsFiles := make([]string, 0)
 	for _, f := range f {
 		if !isIgnored(f) {
 			credsFiles = append(credsFiles, f)
 		}
+	}
+	return credsFiles, nil
+}
+
+func (c *Client) action(option *RegistryOptions) error {
+	credsFiles, err := c.getCredsFiles()
+	if err != nil {
+		return err
 	}
 
 	for _, file := range credsFiles {
