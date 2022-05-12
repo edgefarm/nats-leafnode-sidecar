@@ -61,8 +61,6 @@ type Client struct {
 	finish chan interface{}
 	// finishWatch is a channel to signal the watch loop to finish
 	finishWatch chan interface{}
-	// natsURI is the nats uri to connect to.
-	natsURI string
 }
 
 // NewClient creates a new client for the registry service.
@@ -106,7 +104,6 @@ func NewClient(credentialsMountDirectory string, natsURI string, component strin
 		watcher:     watcher,
 		finish:      make(chan interface{}),
 		finishWatch: make(chan interface{}),
-		natsURI:     natsURI,
 	}, nil
 }
 
