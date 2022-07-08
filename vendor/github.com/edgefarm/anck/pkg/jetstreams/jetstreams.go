@@ -170,8 +170,6 @@ func (j *JetstreamController) UpdateSources(domain string, streamName string, ne
 
 	upstreamSourcesRaw := convertSliceOfPointers(upstreamConfig.Sources)
 	newSourcesRaw := convertSliceOfPointers(newSources)
-	fmt.Printf("%+v\n", upstreamSourcesRaw)
-	fmt.Printf("%+v\n", newSourcesRaw)
 
 	if !common.SliceEqual(upstreamSourcesRaw, newSourcesRaw) {
 		upstreamConfig.Sources = newSources
@@ -423,18 +421,12 @@ func (j *JetstreamController) Delete(domain string, network string, names []stri
 	}
 	errors := false
 	for _, stream := range streams {
-		// fixedStreamNames := make([]string, len(names))
-		// for i, name := range names {
-		// 	fixedStreamNames[i] = fmt.Sprintf("%s_%s", network, name)
-		// }
-		// if slice.Contains(fixedStreamNames, stream.Name()) {
 		jetstreamLog.Info("deleting stream", "domain", domain, "name", stream.Name(), "network", network)
 		err = stream.Delete()
 		if err != nil {
 			fmt.Println("error deleting stream:", err)
 			errors = true
 		}
-		// }
 	}
 	if errors {
 		return fmt.Errorf("error deleting streams")
