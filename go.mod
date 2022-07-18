@@ -6,7 +6,7 @@ require (
 	github.com/edgefarm/anck v0.5.0-beta.1
 	github.com/fsnotify/fsnotify v1.5.1
 	github.com/mitchellh/go-homedir v1.1.0
-	github.com/nats-io/nats.go v1.13.1-0.20220216000616-0096b1bfae8d
+	github.com/nats-io/nats.go v1.16.0
 	github.com/spf13/cobra v1.2.1
 	github.com/spf13/viper v1.9.0
 	github.com/stretchr/testify v1.7.0
